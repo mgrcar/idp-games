@@ -1,31 +1,33 @@
 ROOT = $(realpath .)
-IDP_DEV_DIR = $(ROOT)/../../idp-dev
-STD_LIB_INC = $(IDP_DEV_DIR)/lib/libcpm3-z80/include
-INC_DIR = $(IDP_DEV_DIR)/include
+IDP_DEV_ROOT = $(realpath ../..)/idp-dev
+INC_DIR_STD_LIB = $(IDP_DEV_ROOT)/lib/libcpm3-z80/include
+INC_DIR = $(IDP_DEV_ROOT)/include
 BUILD_DIR = $(ROOT)/build
 SLIM = 
 
 CC = sdcc
-CFLAGS = --std-c11 -mz80 -I$(STD_LIB_INC) -I. -I$(INC_DIR) --no-std-crt0 --nostdinc --nostdlib --debug -D SLIM=$(SLIM)
+CFLAGS = --std-c11 -mz80 -I$(INC_DIR_STD_LIB) -I. -I$(INC_DIR) --no-std-crt0 --nostdinc --nostdlib --debug -D SLIM=$(SLIM)
 
 SRC = $(wildcard *.c)
-OBJS = $(patsubst %.c,$(BUILD_DIR)/%.rel,$(SRC))
+OBJ = $(patsubst %.c,$(BUILD_DIR)/%.rel,$(SRC))
 
 .PHONY: all
-all: $(BUILD_DIR) $(OBJS)
+all: obj
 
-.PHONY: $(BUILD_DIR)
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+.PHONY: obj
+obj: $(OBJ)
 
 .PHONY: clean
 clean:
-	rm -r -f $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
-$(OBJS):
+# $(OBJ) ; Additional header dependencies below
+$(BUILD_DIR)/%.rel: %.c %.h
+	@mkdir -p $(BUILD_DIR)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-# Dependencies
-$(BUILD_DIR)/utils.rel: utils.c utils.h avdc.h
-$(BUILD_DIR)/gdp.rel: gdp.c gdp.h utils.h
-$(BUILD_DIR)/avdc.rel: avdc.c avdc.h utils.h
+# Additional header dependencies
+
+$(BUILD_DIR)/utils.rel: avdc.h
+$(BUILD_DIR)/gdp.rel: utils.h
+$(BUILD_DIR)/avdc.rel: utils.h
