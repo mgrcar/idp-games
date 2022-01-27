@@ -21,7 +21,8 @@ L2FIX = sed '/-b _DATA = 0x8000/d'
 TARGET = tetrisg
 
 SRC = $(wildcard *.c)
-DAT = $(wildcard *.bin)
+BIN_SRC = $(wildcard *.bin)
+BIN_DST = $(addprefix $(BIN_DIR)/,$(BIN_SRC))
 OBJ = $(patsubst %.c,$(BUILD_DIR)/%.rel,$(SRC))
 OBJ_COMMON = $(wildcard $(BUILD_DIR_COMMON)/*.rel)
 HEX = $(BUILD_DIR)/$(TARGET).ihx
@@ -32,7 +33,7 @@ HFE = $(BIN_DIR)/$(TARGET).hfe
 CRT0 = crt0cpm3-z80
 
 .PHONY: all
-all: hfe
+all: com hfe
 
 .PHONY: obj
 obj: $(OBJ)
@@ -40,8 +41,15 @@ obj: $(OBJ)
 .PHONY: hex
 hex: $(HEX)
 
-.PHONY: com
-com: $(COM) $(addprefix $(BIN_DIR)/,$(DAT))
+.PHONY: bin com
+bin com: $(COM) $(BIN_DST)
+	@# Remove obsolete BIN files
+	@for data_file in $(BIN_DIR)/*.bin ; do \
+		if [ ! -f $$(basename $$data_file) ] ; then \
+			echo rm -f $$data_file ; \
+			rm -f $$data_file ; \
+		fi \
+	done
 
 .PHONY: img
 img: $(IMG)
@@ -54,14 +62,18 @@ clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf $(BIN_DIR)
 
-# $(BIN_DIR)/$(DAT) ; Required for 'com'
-$(BIN_DIR)/%.bin: %.bin
-	@mkdir -p $(BIN_DIR)
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
+
+# $(BIN_DST) ; Required for 'bin'/'com'
+$(BIN_DIR)/%.bin: %.bin | $(BIN_DIR)
 	cp $< $(BIN_DIR)
 
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
 # $(OBJ) ; Additional header dependencies below
-$(BUILD_DIR)/%.rel: %.c %.h
-	@mkdir -p $(BUILD_DIR)
+$(BUILD_DIR)/%.rel: %.c %.h | $(BUILD_DIR)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(HEX): $(OBJ) $(OBJ_COMMON)
@@ -69,15 +81,14 @@ $(HEX): $(OBJ) $(OBJ_COMMON)
 	$(L2FIX) $(BUILD_DIR)/$(TARGET).lk > $(BUILD_DIR)/$(TARGET).link
 	$(L2) $(L2FLAGS) $(BUILD_DIR)/$(TARGET).link
 
-$(COM): $(HEX)
-	@mkdir -p $(BIN_DIR)
+$(COM): $(HEX) | $(BIN_DIR)
 	sdobjcopy -I ihex -O binary $(HEX) $(COM)
 
-$(IMG): $(COM) $(DAT)
+$(IMG): $(COM) $(BIN_SRC)
 	cp $(IDP_DEV_ROOT)/scripts/bootg.img $(IMG)
 	@echo cpmcp -f idpfdd $(IMG) $(COM) 0:$(TARGET).com
 	@(cd $(IDP_DEV_ROOT)/scripts ; cpmcp -f idpfdd $(IMG) $(COM) 0:$(TARGET).com)
-	@for data_file in $(DAT) ; do \
+	@for data_file in $(BIN_SRC) ; do \
 		echo cpmcp -f idpfdd $(IMG) $$data_file 0:$$data_file ; \
 		(cd $(IDP_DEV_ROOT)/scripts ; cpmcp -f idpfdd $(IMG) $(ROOT)/$$data_file 0:$$data_file) ; \
 	done

@@ -21,9 +21,11 @@ obj: $(OBJ)
 clean:
 	rm -rf $(BUILD_DIR)
 
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
 # $(OBJ) ; Additional header dependencies below
-$(BUILD_DIR)/%.rel: %.c %.h
-	@mkdir -p $(BUILD_DIR)
+$(BUILD_DIR)/%.rel: %.c %.h | $(BUILD_DIR)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 # Additional header dependencies
