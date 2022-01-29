@@ -13,23 +13,22 @@ SLIM = y
 .PHONY: all
 all: hfe
 
-.PHONY: obj
-obj: subdir-obj
+.PHONY: sdk
+sdk:
+	$(MAKE) -C $(IDP_DEV_DIR) all
 
-.PHONY: hex
-hex: subdir-hex
-
-.PHONY: com
-com: subdir-com
+$(BIN_DIR):
 	mkdir -p $(BIN_DIR)
+
+.PHONY: bin com
+bin com: subdir-bin | $(BIN_DIR)
 	@for dir in $(GAME_DIRS) ; do \
 		echo cp $$dir/bin/\* $(BIN_DIR) ; \
 		cp $$dir/bin/* $(BIN_DIR) ; \
 	done
 
 .PHONY: img
-img: subdir-com
-	mkdir -p $(BIN_DIR)
+img: subdir-bin | $(BIN_DIR)
 	cp $(IDP_DEV_DIR)/scripts/bootg.img $(IMG)
 	@for dir in $(GAME_DIRS) ; do \
 		for file in $$dir/bin/* ; do \
@@ -43,23 +42,22 @@ hfe: img
 	-hxcfe -uselayout:IDP -conv:HXC_HFE -finput:$(IMG) -foutput:$(HFE)
 
 .PHONY: clean
-clean:
+clean: subdir-clean
 	rm -rf $(BIN_DIR)
+
+.PHONY: sdk-clean clean-sdk
+sdk-clean clean-sdk:
+	$(MAKE) -C $(IDP_DEV_DIR) clean
+
+.PHONY: subdir-clean
+subdir-clean:
 	@for dir in $(SRC_DIRS) ; do \
 		echo $(MAKE) -C $$dir clean ; \
 		$(MAKE) -C $$dir clean ; \
 	done
 
-.PHONY: idp-dev-clean
-idp-dev-clean:
-	$(MAKE) -C $(IDP_DEV_DIR) clean
-
-.PHONY: clean-all
-clean-all: clean idp-dev-clean
-
 .PHONY: subdir-%
 subdir-%:
-	$(MAKE) -C $(IDP_DEV_DIR) all SLIM=$(SLIM)
 	$(MAKE) -C $(COMMON_DIR) obj SLIM=$(SLIM)
 	@for dir in $(GAME_DIRS) ; do \
 		echo $(MAKE) -C $$dir $* SLIM=$(SLIM) ; \

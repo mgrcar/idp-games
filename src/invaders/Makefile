@@ -98,4 +98,4 @@ $(HFE): $(IMG)
 
 # Additional header dependencies
 
-$(BUILD_DIR)/invaders.rel: ../common/avdc.h ../common/utils.h ../common/gdp.h
+$(BUILD_DIR)/$(TARGET).rel: ../common/avdc.h ../common/utils.h ../common/gdp.h
