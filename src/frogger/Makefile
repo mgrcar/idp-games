@@ -44,7 +44,7 @@ hex: $(HEX)
 .PHONY: bin com
 bin com: $(COM) $(BIN_DST)
 	@# Remove obsolete BIN files
-	@for data_file in $(BIN_DIR)/*.bin ; do \
+	@for data_file in $(wildcard $(BIN_DIR)/*.bin) ; do \
 		if [ ! -f $$(basename $$data_file) ] ; then \
 			echo rm -f $$data_file ; \
 			rm -f $$data_file ; \

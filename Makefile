@@ -31,10 +31,10 @@ bin com: subdir-bin | $(BIN_DIR)
 img: subdir-bin | $(BIN_DIR)
 	cp $(IDP_DEV_DIR)/scripts/bootg.img $(IMG)
 	@for dir in $(GAME_DIRS) ; do \
-		for file in $$dir/bin/* ; do \
-			echo cpmcp -f idpfdd $(IMG) $$file 0:$$(basename $$file) ; \
-			(cd $(IDP_DEV_DIR)/scripts ; cpmcp -f idpfdd $(IMG) $$file 0:$$(basename $$file)) ; \
-		done ; \
+		find $$dir/bin \( -name *.bin -or -name *.com \) -exec sh -c '\
+			echo cpmcp -f idpfdd $(IMG) {} 0:$$(basename {}) ; \
+			(cd $(IDP_DEV_DIR)/scripts ; cpmcp -f idpfdd $(IMG) {} 0:$$(basename {})) \
+			' ';' ; \
 	done
 
 .PHONY: hfe
