@@ -15,7 +15,7 @@ all: hfe
 
 .PHONY: sdk
 sdk:
-	$(MAKE) -C $(IDP_DEV_DIR) all
+	$(MAKE) -C $(IDP_DEV_DIR) all SLIM=$(SLIM)
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -58,8 +58,8 @@ subdir-clean:
 
 .PHONY: subdir-%
 subdir-%:
-	$(MAKE) -C $(COMMON_DIR) obj SLIM=$(SLIM)
+	$(MAKE) -C $(COMMON_DIR) obj
 	@for dir in $(GAME_DIRS) ; do \
-		echo $(MAKE) -C $$dir $* SLIM=$(SLIM) ; \
-		$(MAKE) -C $$dir $* SLIM=$(SLIM) ; \
+		echo $(MAKE) -C $$dir $* ; \
+		$(MAKE) -C $$dir $* ; \
 	done

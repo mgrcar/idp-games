@@ -6,10 +6,9 @@ BUILD_DIR = $(ROOT)/build
 BIN_DIR = $(ROOT)/bin
 BUILD_DIR_SDK = $(IDP_DEV_ROOT)/build
 BUILD_DIR_COMMON = $(realpath ..)/common/build
-SLIM = 
 
 CC = sdcc
-CFLAGS = --std-c11 -mz80 -I$(INC_DIR_STD_LIB) -I. -I$(INC_DIR) --no-std-crt0 --nostdinc --nostdlib --debug -D SLIM=$(SLIM)
+CFLAGS = --std-c11 -mz80 -I$(INC_DIR_STD_LIB) -I. -I$(INC_DIR) --no-std-crt0 --nostdinc --nostdlib --debug
 
 LD = sdcc
 LDFLAGS = -mz80 -Wl -y --code-loc 0x100 --no-std-crt0 --nostdlib --nostdinc -L$(BUILD_DIR_SDK) -llibsdcc-z80 -llibcpm3-z80 -llibpartner -p

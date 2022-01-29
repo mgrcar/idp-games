@@ -3,10 +3,9 @@ IDP_DEV_ROOT = $(realpath ../..)/idp-dev
 INC_DIR_STD_LIB = $(IDP_DEV_ROOT)/lib/libcpm3-z80/include
 INC_DIR = $(IDP_DEV_ROOT)/include
 BUILD_DIR = $(ROOT)/build
-SLIM = 
 
 CC = sdcc
-CFLAGS = --std-c11 -mz80 -I$(INC_DIR_STD_LIB) -I. -I$(INC_DIR) --no-std-crt0 --nostdinc --nostdlib --debug -D SLIM=$(SLIM)
+CFLAGS = --std-c11 -mz80 -I$(INC_DIR_STD_LIB) -I. -I$(INC_DIR) --no-std-crt0 --nostdinc --nostdlib --debug
 
 SRC = $(wildcard *.c)
 OBJ = $(patsubst %.c,$(BUILD_DIR)/%.rel,$(SRC))
