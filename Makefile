@@ -23,8 +23,10 @@ $(BIN_DIR):
 .PHONY: bin com
 bin com: subdir-bin | $(BIN_DIR)
 	@for dir in $(GAME_DIRS) ; do \
-		echo cp $$dir/bin/\* $(BIN_DIR) ; \
-		cp $$dir/bin/* $(BIN_DIR) ; \
+		find $$dir/bin \( -name *.bin -or -name *.com \) -exec sh -c '\
+			echo cp {} $(BIN_DIR) ; \
+			cp {} $(BIN_DIR) \
+			' ';' ; \
 	done
 
 .PHONY: img
