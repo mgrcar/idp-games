@@ -13,19 +13,20 @@ uint8_t avdc_init_str_80[] = {
     0x99, // IR4: 1 (BLINK RATE) / 0011001 (ACTIVE CHAR ROWS PER SCREEN = 25 + 1)
     0x4F, // IR5: 01001111 (ACTIVE CHARS PER ROW = 79 + 1)
     0x0A, // IR6: 0000 (FIRST LINE OF CURSOR = SCAN LINE 0) / 1010 (LAST LINE OF CURSOR = SCAN LINE 10 STARTING AT 0)
-    0xEA, // IR7: 11 (VSYNC W) / 1 (CURSOR BLINK ON) / 0 (CURSOR RATE) / 1010 (UNDERLINE POSITION = SCAN LINE 10 STARTING AT 0)
+    0xEA, // IR7: 11 (VSYNC WIDTH) / 1 (CURSOR BLINK ON) / 0 (CURSOR RATE) / 1010 (UNDERLINE POSITION = SCAN LINE 10 STARTING AT 0)
     0x00, // IR8: DISPLAY BUFFER 1ST ADDRESS LSB'S
     0x30  // IR9: 0011 (DISPLAY BUFFER LAST ADDR) / 0000 (DISPLAY BUFFER 1ST ADDRESS MSB'S)
 };
+
 uint8_t avdc_init_str_132[] = { 
     0xD0, // IR0: 1 (DOUBLE HT/WD ON) / 1010 (11 SCAN LINES PER CHAR ROW) / 0 (SYNC = VSYNC) / 00 (BUFFER MODE = INDEPENDENT)
     0x3E, // IR1: 0 (NON-INTERLACED) / 0111110 (EQUALIZING CONSTANT)
-    0xBF, // IR2: 1 (ROW TABLE ON) / 0111 (HORIZ SYNC W) / 111 (HORIZ BACK PORCH)
+    0xBF, // IR2: 1 (ROW TABLE ON) / 0111 (HSYNC WIDTH) / 111 (HORIZ BACK PORCH)
     0x05, // IR3: 000 (V FRONT PORCH) / 00101 (V BACK PORCH)
     0x99, // IR4: 1 (BLINK RATE) / 0011001 (ACTIVE CHAR ROWS PER SCREEN = 25 + 1)
     0x83, // IR5: 10000011 (ACTIVE CHARACTERS PER ROW = 131 + 1)
     0x0B, // IR6: 0000 (FIRST LINE OF CURSOR) / 1011 (LAST LINE OF CURSOR = SCAN LINE 11 STARTING AT 0) 
-    0xEA, // IR7: 11 (VSYNC W) / 1 (CURSOR BLINK ON) / 0 (CURSOR RATE) / 1010 (UNDERLINE POSITION = SCAN LINE 10 STARTING AT 0)
+    0xEA, // IR7: 11 (VSYNC WIDTH) / 1 (CURSOR BLINK ON) / 0 (CURSOR RATE) / 1010 (UNDERLINE POSITION = SCAN LINE 10 STARTING AT 0)
     0x00, // IR8: DISPLAY BUFFER 1ST ADDRESS LSB'S
     0x30  // IR9: 0011 (DISPLAY BUFFER LAST ADDR) / 0000 (DISPLAY BUFFER 1ST ADDRESS MSB'S)
 };
@@ -203,6 +204,7 @@ void avdc_write_str_at_pointer_pos(uint8_t row, uint8_t col, uint8_t *str, uint8
 
 void avdc_set_cursor(uint8_t row, uint8_t col) {
     avdc_wait_access();
+    avdc_wait_ready(); // In the independent mode, the ROFLG bit of the status register should be checked for the ready state (bit 5 equal to a logic one) before writing to the cursor address registers.
     uint16_t addr;
     addr = avdc_get_pointer_cached(row, col);
     AVDC_CUR_LWR = LO(addr);
