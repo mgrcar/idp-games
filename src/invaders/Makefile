@@ -6,6 +6,7 @@ BUILD_DIR = $(ROOT)/build
 BIN_DIR = $(ROOT)/bin
 BUILD_DIR_SDK = $(IDP_DEV_ROOT)/build
 BUILD_DIR_COMMON = $(realpath ..)/common/build
+AUX_DIR = $(realpath ../..)/make-aux
 
 CC = sdcc
 CFLAGS = --std-c11 -mz80 -I$(INC_DIR_STD_LIB) -I. -I$(INC_DIR) --no-std-crt0 --nostdinc --nostdlib --debug
@@ -84,12 +85,12 @@ $(COM): $(HEX) | $(BIN_DIR)
 	sdobjcopy -I ihex -O binary $(HEX) $(COM)
 
 $(IMG): $(COM) $(BIN_SRC)
-	cp $(IDP_DEV_ROOT)/scripts/bootg.img $(IMG)
+	cp $(AUX_DIR)/bootg.img $(IMG)
 	@echo cpmcp -f idpfdd $(IMG) $(COM) 0:$(TARGET).com
-	@(cd $(IDP_DEV_ROOT)/scripts ; cpmcp -f idpfdd $(IMG) $(COM) 0:$(TARGET).com)
+	@(cd $(AUX_DIR) ; cpmcp -f idpfdd $(IMG) $(COM) 0:$(TARGET).com)
 	@for data_file in $(BIN_SRC) ; do \
-		echo cpmcp -f idpfdd $(IMG) $$data_file 0:$$data_file ; \
-		(cd $(IDP_DEV_ROOT)/scripts ; cpmcp -f idpfdd $(IMG) $(ROOT)/$$data_file 0:$$data_file) ; \
+		echo cpmcp -f idpfdd $(IMG) $(ROOT)/$$data_file 0:$$data_file ; \
+		(cd $(AUX_DIR) ; cpmcp -f idpfdd $(IMG) $(ROOT)/$$data_file 0:$$data_file) ; \
 	done
 
 $(HFE): $(IMG)

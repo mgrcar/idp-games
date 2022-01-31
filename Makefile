@@ -7,6 +7,7 @@ IDP_DEV_DIR = $(ROOT)/idp-dev
 BIN_DIR = $(ROOT)/bin
 IMG = $(BIN_DIR)/idp-games.img
 HFE = $(BIN_DIR)/idp-games.hfe
+AUX_DIR = $(ROOT)/make-aux
 
 SLIM = y
 
@@ -15,7 +16,7 @@ all: hfe
 
 .PHONY: sdk
 sdk:
-	$(MAKE) -C $(IDP_DEV_DIR) all SLIM=$(SLIM)
+	$(MAKE) -C $(IDP_DEV_DIR) libs SLIM=$(SLIM)
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -31,11 +32,11 @@ bin com: subdir-bin | $(BIN_DIR)
 
 .PHONY: img
 img: subdir-bin | $(BIN_DIR)
-	cp $(IDP_DEV_DIR)/scripts/bootg.img $(IMG)
+	cp $(AUX_DIR)/bootg.img $(IMG)
 	@for dir in $(GAME_DIRS) ; do \
 		find $$dir/bin \( -name *.bin -or -name *.com \) -exec sh -c '\
 			echo cpmcp -f idpfdd $(IMG) {} 0:$$(basename {}) ; \
-			(cd $(IDP_DEV_DIR)/scripts ; cpmcp -f idpfdd $(IMG) {} 0:$$(basename {})) \
+			(cd $(AUX_DIR) ; cpmcp -f idpfdd $(IMG) {} 0:$$(basename {})) \
 			' ';' ; \
 	done
 
