@@ -61,8 +61,8 @@ subdir-clean:
 
 .PHONY: subdir-%
 subdir-%:
-	$(MAKE) -C $(COMMON_DIR) obj
+	$(MAKE) -C $(COMMON_DIR) obj || exit
 	@for dir in $(GAME_DIRS) ; do \
-		echo $(MAKE) -C $$dir $* ; \
-		$(MAKE) -C $$dir $* ; \
+		echo $(MAKE) -C $$dir $* '||' exit ; \
+		$(MAKE) -C $$dir $* || exit ; \
 	done
