@@ -28,53 +28,80 @@ typedef enum {
 #define AVDC_CMD_SET_REG_0    0x10
 #define AVDC_CMD_DISPLAY_ON   0x3D
 
-#define EI __asm__ ("NOP")
-#define DI __asm__ ("NOP") // WARNME: test if DI f* up the keyboard
-
-__sfr __at 0x39 AVDC_CMD;     // W: command 
+__sfr __at 0x39 AVDC_CMD;     // W: command
 __sfr __at 0x39 AVDC_STATUS;  // R: status (ready)
 __sfr __at 0x36 AVDC_ACCESS;  // R: status (access)
-__sfr __at 0x38 AVDC_INIT;    // W: write to current IR (init/interrupt register) 
-__sfr __at 0x34 AVDC_CHR;     // R/W: character register 
-__sfr __at 0x35 AVDC_ATTR;    // R/W: attribute register 
+__sfr __at 0x38 AVDC_INIT;    // W: write to current IR (init/interrupt register)
+__sfr __at 0x34 AVDC_CHR;     // R/W: character register
+__sfr __at 0x35 AVDC_ATTR;    // R/W: attribute register
 
 __sfr __at 0x3C AVDC_CUR_LWR; // W: cursor address lower
 __sfr __at 0x3D AVDC_CUR_UPR; // W: cursor address upper
 
-__sfr __at 0x32 AVDC_COMMON_TXT_ATTR;  
+__sfr __at 0x32 AVDC_COMMON_TXT_ATTR;
 __sfr __at 0x3E AVDC_SCREEN_START_2_LOWER;
-__sfr __at 0x3F AVDC_SCREEN_START_2_UPPER; 
+__sfr __at 0x3F AVDC_SCREEN_START_2_UPPER;
 __sfr __at 0x20 AVDC_GDP_STATUS;
 
-extern uint16_t row_addr[26];
+extern uint8_t _rows;
+extern uint8_t _cols;
+extern uint8_t _init_str_80[];
+extern uint8_t _init_str_132[];
+extern uint16_t _row_addr[128];
+
+// init / done
 
 void avdc_init();
-void avdc_init_ex(avdc_mode mode, uint8_t custom_txt_attr_reg, uint8_t *custom_init_str);
-void avdc_reset(avdc_mode mode, uint8_t custom_txt_attr_reg, uint8_t *custom_init_str);
+void avdc_init_ex(avdc_mode mode, uint8_t txt_attr_reg, uint8_t *init_str);
 
-void avdc_wait_access(); // WARNME: disables interrupts (you need to call EI to re-enable them)
+void avdc_done();
+
+// init / done aux
+
+void avdc_purge();
+void avdc_reset(avdc_mode mode, uint8_t custom_txt_attr_reg, uint8_t *custom_init_str);
+uint8_t *avdc_create_init_str(avdc_mode base, uint8_t cols, uint8_t rows, uint8_t char_width, uint8_t char_height, uint8_t *txt_attr, uint8_t *buffer);
+void avdc_write_addr_at_cursor(uint16_t addr);
+
+// wait access
+
+void avdc_wait_access();
 void avdc_wait_ready();
+void avdc_wait_long_command();
+
+// cursor on / off
 
 void avdc_cursor_off();
 void avdc_cursor_on();
 
+// clear screen
+
 void avdc_clear_screen();
 void avdc_clear_row(uint8_t row);
+
+// read at pointer
 
 uint16_t avdc_get_pointer(uint8_t row, uint8_t col);
 uint16_t avdc_get_pointer_cached(uint8_t row, uint8_t col);
 
 void avdc_read_at_pointer(uint16_t addr, uint8_t *chr, uint8_t *attr);
 
+// write at pointer
+
 void avdc_write_at_pointer(uint16_t addr, uint8_t chr, uint8_t attr);
 void avdc_write_str_at_pointer(uint16_t addr, uint8_t *str, uint8_t *attr);
 void avdc_write_str_at_pointer_pos(uint8_t row, uint8_t col, uint8_t *str, uint8_t *attr);
 
+// write at cursor
+
 void avdc_set_cursor(uint8_t row, uint8_t col);
+void avdc_set_cursor_addr(uint16_t addr);
 
 void avdc_write_at_cursor(uint8_t chr, uint8_t attr);
 void avdc_write_str_at_cursor(uint8_t *str, uint8_t *attr);
 void avdc_write_str_at_cursor_pos(uint8_t row, uint8_t col, uint8_t *str, uint8_t *attr);
+
+// define / write glyphs
 
 void avdc_define_glyph(uint8_t char_code, uint8_t *char_data);
 
@@ -82,8 +109,5 @@ void avdc_write_glyphs_at_pointer(uint16_t addr, uint8_t glyph_count, uint8_t *g
 void avdc_write_glyphs_at_pointer_pos(uint8_t row, uint8_t col, uint8_t glyph_count, uint8_t *glyphs, uint8_t attr);
 void avdc_write_glyphs_at_cursor(uint8_t glyph_count, uint8_t *glyphs, uint8_t attr);
 void avdc_write_glyphs_at_cursor_pos(uint8_t row, uint8_t col, uint8_t glyph_count, uint8_t *glyphs, uint8_t attr);
-
-void avdc_done();
-void avdc_done_ex(bool reset_avdc);
 
 #endif
