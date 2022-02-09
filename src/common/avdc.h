@@ -12,6 +12,7 @@ typedef enum {
 
 #define AVDC_DEFAULT_ATTR 0x00
 #define AVDC_ATTR_UDG     0x04
+#define AVDC_ATTR_INVERT  0x30
 
 #define AVDC_STATUS_READY 0x20
 #define AVDC_ACCESS_FLAG  0x10
@@ -42,12 +43,6 @@ __sfr __at 0x32 AVDC_COMMON_TXT_ATTR;
 __sfr __at 0x3E AVDC_SCREEN_START_2_LOWER;
 __sfr __at 0x3F AVDC_SCREEN_START_2_UPPER;
 __sfr __at 0x20 AVDC_GDP_STATUS;
-
-extern uint8_t _rows;
-extern uint8_t _cols;
-extern uint8_t _init_str_80[];
-extern uint8_t _init_str_132[];
-extern uint16_t _row_addr[128];
 
 // init / done
 
