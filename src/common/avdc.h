@@ -39,6 +39,8 @@ __sfr __at 0x35 AVDC_ATTR;    // R/W: attribute register
 __sfr __at 0x3C AVDC_CUR_LWR; // W: cursor address lower
 __sfr __at 0x3D AVDC_CUR_UPR; // W: cursor address upper
 
+__sfr __at 0xAC AVDC_MODE_SETTING;
+
 __sfr __at 0x32 AVDC_COMMON_TXT_ATTR;
 __sfr __at 0x3E AVDC_SCREEN_START_2_LOWER;
 __sfr __at 0x3F AVDC_SCREEN_START_2_UPPER;
@@ -47,16 +49,21 @@ __sfr __at 0x20 AVDC_GDP_STATUS;
 // init / done
 
 void avdc_init();
-void avdc_init_ex(avdc_mode mode, uint8_t txt_attr_reg, uint8_t *init_str);
+void avdc_init_ex(avdc_mode mode, uint8_t txt_attr, uint8_t *init_str);
 
 void avdc_done();
 
 // init / done aux
 
 void avdc_purge();
-void avdc_reset(avdc_mode mode, uint8_t custom_txt_attr_reg, uint8_t *custom_init_str);
+void avdc_reset(avdc_mode mode, uint8_t custom_txt_attr, uint8_t *custom_init_str);
 uint8_t *avdc_create_init_str(avdc_mode base, uint8_t cols, uint8_t rows, uint8_t char_width, uint8_t char_height, uint8_t *txt_attr, uint8_t *buffer);
 void avdc_write_addr_at_cursor(uint16_t addr);
+
+// on / off
+
+void avdc_display_off();
+void avdc_display_on();
 
 // wait access
 
