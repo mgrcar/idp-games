@@ -4,8 +4,11 @@
 #include "../common/utils.h"
 #include "mage.h"
 
-// WARNME
 #define _MAGE_BUFFER_WEIGHT_LIMIT 50
+// setting to try if there are issues:
+// * _MAGE_BUFFER_WEIGHT_LIMIT = 40
+// * cursor move weight = 30
+// * cursor OK weight = 10
 
 typedef struct {
 	uint16_t addr;
@@ -21,8 +24,7 @@ uint8_t _mage_dirty_row[5]; // 40 rows
 uint8_t _mage_dirty_col_block[40][2]; // 13 column blocks in each row (16 bits available)
 uint8_t _mage_dirty_char[40][13]; // 8 chars in each column block
 
-uint8_t _mage_screen[40][100]; // 40 rows, 100 columns (200 x 120)
-uint8_t _mage_screen_attr[40][50]; // 4 bits per char
+uint8_t _mage_screen_buffer[40][100]; // 40 rows, 100 columns (200 x 120)
 
 uint8_t _mage_init_str[10];
 bool _mage_display_off;
@@ -46,10 +48,7 @@ void _mage_dirty_clear() {
 void _mage_buffer_clear() {
 	for (uint8_t row = 0; row < 40; row++) {
 		for (uint8_t col = 0; col < 100; col++) {
-			_mage_screen[row][col] = 0;
-		}
-		for (uint8_t i = 0; i < 50; i++) {
-			_mage_screen_attr[row][i] = 0;
+			_mage_screen_buffer[row][col] = 0;
 		}
 	}
 }
@@ -117,13 +116,76 @@ void _mage_flush() {
 
 void _mage_write_char(uint8_t row, uint8_t col, bool cursor_ok) {
 	_mage_buffer_ptr->addr = cursor_ok ? 0 : avdc_get_pointer_cached(row, col);
-	_mage_buffer_ptr->attr = AVDC_ATTR_UDG | ((_mage_screen[row][col] & 0xC0) >> 2);
-	if ((_mage_screen[row][col] & 0xC0) == MAGE_ATTR_DIM) {
-		_mage_buffer_ptr->ch = ~_mage_screen[row][col] & 0x3F;
+	_mage_buffer_ptr->attr = AVDC_ATTR_UDG | ((_mage_screen_buffer[row][col] & 0xC0) >> 2);
+	if ((_mage_screen_buffer[row][col] & 0xC0) == MAGE_ATTR_DIM) {
+		_mage_buffer_ptr->ch = ~_mage_screen_buffer[row][col] & 0x3F;
 	} else {
-		_mage_buffer_ptr->ch = _mage_screen[row][col] & 0x3F;
+		_mage_buffer_ptr->ch = _mage_screen_buffer[row][col] & 0x3F;
 	}
 	_mage_buffer_ptr++;
+}
+
+void mage_render_faster() {
+	avdc_set_cursor(0, 0);
+	uint8_t r = 0;
+	uint8_t c = 0;
+	for (uint8_t row_byte = 0; row_byte < 5; row_byte++) {
+		uint8_t dirty_row_byte = _mage_dirty_row[row_byte];
+		if (dirty_row_byte != 0) {
+			for (uint8_t row_bit = 0; row_bit < 8; row_bit++) {
+				if ((dirty_row_byte & (1 << row_bit)) != 0) {
+					uint8_t dirty_row = row_byte * 8 + row_bit;
+					//printf("row: %u \n\r", dirty_row);
+					for (uint8_t col_byte = 0; col_byte < 13; col_byte++) {
+						if (_mage_dirty_char[dirty_row][col_byte] != 0) {
+							uint8_t dirty_char_byte = _mage_dirty_char[dirty_row][col_byte];
+							for (uint8_t char_bit = 0; char_bit < 8; char_bit++) {
+								if ((dirty_char_byte & (1 << char_bit)) != 0) {
+									//printf("%u %u \n\r", dirty_row, col_byte * 8 + char_bit);
+									uint8_t col = col_byte * 8 + char_bit;
+									bool cursor_ok = dirty_row == r && col == c;
+									r = dirty_row;
+									c = col + 1;
+									uint8_t w = cursor_ok ? 10 : 25;
+									if (_mage_buffer_weight + w > _MAGE_BUFFER_WEIGHT_LIMIT) {
+										_mage_flush();
+									}
+									_mage_write_char(dirty_row, col, cursor_ok);
+									_mage_buffer_weight += w;
+								}
+							}
+							_mage_dirty_char[dirty_row][col_byte] = 0; // clear dirty char bits
+						}
+					}
+				}
+			}
+			_mage_dirty_row[row_byte] = 0; // clear dirty row bits
+		}
+	}
+	_mage_flush();
+}
+
+
+void mage_render_naive() {
+	avdc_set_cursor(0, 0);
+	uint8_t r = 0;
+	uint8_t c = 0;
+	for (uint8_t row = 0; row < 40; row++) {
+		for (uint8_t col = 0; col < 100; col++) {
+			if (_mage_screen_buffer[row][col] != 0) {
+				bool cursor_ok = row == r && col == c;
+				r = row;
+				c = col + 1;
+				uint8_t w = cursor_ok ? 10 : 25;
+				if (_mage_buffer_weight + w > _MAGE_BUFFER_WEIGHT_LIMIT) {
+					_mage_flush();
+				}
+				_mage_write_char(row, col, cursor_ok);
+				_mage_buffer_weight += w;
+			}
+		}
+	}
+	_mage_flush();
 }
 
 void mage_render() {
@@ -182,8 +244,8 @@ void mage_flag_dirty(uint8_t row, uint8_t col) {
 }
 
 void mage_set_block(uint8_t row, uint8_t col, uint8_t val) {
-	if (_mage_screen[row][col] != val) {
-		_mage_screen[row][col] = val;
+	if (_mage_screen_buffer[row][col] != val) {
+		_mage_screen_buffer[row][col] = val;
 		mage_flag_dirty(row, col);
 	}
 }

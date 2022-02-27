@@ -14,6 +14,8 @@ void mage_display_off();
 void mage_display_on();
 
 void mage_render();
+void mage_render_naive();
+void mage_render_faster();
 void mage_flag_dirty(uint8_t row, uint8_t col);
 
 void mage_set_block(uint8_t row, uint8_t col, uint8_t val);
