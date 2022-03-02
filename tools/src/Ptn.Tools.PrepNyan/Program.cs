@@ -24,9 +24,9 @@ namespace Ptn.Tools.PrepNyan
         {
             var colors = new HashSet<Color>();
             byte val = 0;
-            for (int j = 0; j < 3; j++)
+            for (int i = 0; i < 2; i++)
             {
-                for (int i = 0; i < 2; i++)
+                for (int j = 0; j < 3; j++)
                 {
                     var px = image.GetPixel(x + i, y + j);
                     if (!colors.Contains(px)) { colors.Add(px); }
@@ -47,16 +47,16 @@ namespace Ptn.Tools.PrepNyan
             if (colors.Any(x => x != black)) 
             {
                 var color = colors.First(x => x != black);
-                if (color == white) { attr = 0x40; }
+                if (color == white) { attr = 0x40 >> 2; }
                 //else if (color == green) { attr = 0x00; }
-                else if (color == darkGreen) { attr = 0x80; }
+                else if (color == darkGreen) { attr = 0x80 >> 2; }
             }
             int row = y / 3;
             int col = x / 2;
             //if (val != 0)
             if (x >= 82 && x <= 118)
             {
-                Console.Write($"{{ {row}, {col}, {val} | {attr} }}, ");
+                Console.Write($"{{ {row}, {col}, {val}, {attr} }}, ");
                 count++;
             }
         }
@@ -67,9 +67,9 @@ namespace Ptn.Tools.PrepNyan
             using (var image = new Bitmap(Image.FromFile(fileName)))
             {
                 Console.WriteLine($"Processing {Path.GetFullPath(fileName)}...");
-                for (int x = 0; x < 200; x += 2)
+                for (int y = 0; y < 120; y += 3)
                 {
-                    for (int y = 0; y < 120; y += 3)
+                    for (int x = 0; x < 200; x += 2)
                     {
                         ProcessBlock(image, x, y);
                     }
