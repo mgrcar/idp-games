@@ -17,56 +17,116 @@ uint8_t image2[][4] = {
 
 uint8_t str_buffer[100];
 
-void render_frame(uint8_t row) {
-    // switch (row) {
-    //     case 36: // frame 1 done
-    //         mage_render();
-    //         break;
-    //     case 60: // frame 2 done
-    //         mage_render();
-    //         break;
-    //     case 84: // frame 3 done
-    //         mage_render();
-    //         break;
-    // }
+uint8_t frame_rows[] = { 4, 12, 20, 28 };
+
+void set_frame(uint8_t idx) {
+    for (uint8_t row = 0; row <= 15; row++) {
+        mage_set_row_addr(row, 0);
+    }
+    for (uint8_t row = 16, ref = frame_rows[idx]; row <= 23; row++, ref++) {
+        mage_set_row_addr(row, ref * 100);
+    }
+    for (uint8_t row = 24; row < 40; row++) {
+        mage_set_row_addr(row, 0);
+    }
+}
+
+void try_render_frame(uint8_t row) {
+    switch (row) {
+        case 12://36: // frame 1 done
+            mage_render(false);
+            set_frame(0);
+            break;
+        case 20://60: // frame 2 done
+            mage_render(false);
+            set_frame(1);
+            break;
+        case 28://84: // frame 3 done
+            mage_render(false);
+            set_frame(2);
+            break;
+        case 36://108: // frame 4 done
+            mage_render(false);
+            set_frame(3);
+            break;
+    }
 }
 
 int main() {
 
     mage_init();
 
-    //mage_display_off();
+    mage_display_off();
 
-    uint16_t i;
-
-    for (i = 0; i < 1649; i++) {
-        mage_set_block(image1[i][0], image1[i][1], image1[i][2], image1[i][3]);
+    uint8_t row_prev = 0;
+    for (uint16_t i = 0; i < 1649; i++) {
+        uint8_t row = image1[i][0];
+        if (row > row_prev) {
+            //try_render_frame(row);
+            row_prev = row;
+        }
+        mage_set_block(row, image1[i][1], image1[i][2], image1[i][3]);
     }
 
-    timer_reset(0);
-    mage_render();
-    uint16_t t1 = timer_diff();
+    set_frame(0);
 
-    //mage_display_on();
+    mage_render(false);
 
-    while (!kbhit());
+    mage_display_on();
 
-    for (i = 0; i < 760; i++) {
-        mage_set_block(image2[i][0], image2[i][1], image2[i][2], image2[i][3]);
+// repeat:
+//     for (uint8_t i = 0; i < 4; i++) {
+//         set_frame(i);
+//     }
+//     goto repeat;
+
+// TODO:
+//     hide cursor on display ON somehow
+//     faster import of data (set_block_dirty, set_block_raw, set_block_by_addr...?)
+//     check what happens when/if count overflows
+
+repeat:
+    row_prev = 0;
+    for (uint16_t i = 0; i < 760; i++) {
+        uint8_t row = image2[i][0];
+        if (row > row_prev) {
+            try_render_frame(row);
+            row_prev = row;
+        }
+        mage_set_block(row, image2[i][1], image2[i][2], image2[i][3]);
     }
+goto repeat;
 
-    timer_reset(0);
-    mage_render();
-    uint16_t t2 = timer_diff();
+    //timer_reset(0);
+    //mage_render(false);
+    //uint16_t t1 = timer_diff();
+
+
+
+ //    // first, show frames 2-4
+ //    for (uint8_t i = 1; i < 4; i++) {
+ //        set_frame(i);
+ //    }
+ //    // now, render the next batch, and change frames gradually
+
+ //    while (!kbhit());
+
+ //    for (i = 0; i < 760; i++) {
+ //        mage_set_block(image2[i][0], image2[i][1], image2[i][2], image2[i][3]);
+ //    }
+
+ //    timer_reset(0);
+ //    mage_render(true);
+ //    uint16_t t2 = timer_diff();
 
 	while (!kbhit());
 
     mage_done();
 
-    avdc_init();
-    avdc_write_str_at_cursor_pos(0, 0, itoa(t1, str_buffer, 10), NULL);
-    avdc_write_str_at_cursor_pos(1, 0, itoa(t2, str_buffer, 10), NULL);
-    while (!kbhit());
+ //    avdc_init();
+ //    avdc_write_str_at_cursor_pos(0, 0, itoa(t1, str_buffer, 10), NULL);
+ //    avdc_write_str_at_cursor_pos(1, 0, itoa(t2, str_buffer, 10), NULL);
+ //   while (!kbhit());
 
 	return 0;
 }

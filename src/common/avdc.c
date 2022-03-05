@@ -253,6 +253,7 @@ void avdc_display_off() {
 void avdc_display_on() {
     avdc_wait_ready();
     AVDC_CMD = AVDC_CMD_DISPLAY_ON;
+    avdc_cursor_off();
 }
 
 // wait access
