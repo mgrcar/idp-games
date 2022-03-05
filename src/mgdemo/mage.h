@@ -14,6 +14,7 @@ void mage_display_off();
 void mage_display_on();
 
 void mage_set_block(uint8_t row, uint8_t col, uint8_t val, uint8_t attr);
+void mage_set_block_raw(uint8_t row, uint16_t addr, uint8_t val, uint8_t attr);
 void mage_render(bool interlaced);
 
 void mage_set_row_addr(uint8_t row, uint16_t addr);

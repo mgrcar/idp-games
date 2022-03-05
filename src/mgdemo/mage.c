@@ -74,6 +74,13 @@ void mage_set_block(uint8_t row, uint8_t col, uint8_t val, uint8_t attr) {
 	}
 }
 
+void mage_set_block_raw(uint8_t row, uint16_t addr, uint8_t val, uint8_t attr) {
+	uint8_t *ptr = (uint8_t *)_mage_screen_buffer + (addr << 1);
+	*ptr = val;
+	*(ptr + 1) = attr;
+	_mage_row_dirty[row] = true;
+}
+
 void _mage_render_line(uint16_t addr) {
 	uint8_t *ptr = (uint8_t *)_mage_screen_buffer + ((addr - 80) << 1) + 1;
 	uint16_t addr_end = addr + 100;
