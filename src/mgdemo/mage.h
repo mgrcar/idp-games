@@ -18,5 +18,6 @@ void mage_set_block_raw(uint8_t row, uint16_t addr, uint8_t val, uint8_t attr);
 void mage_render(bool interlaced);
 
 void mage_set_row_addr(uint8_t row, uint16_t addr);
+void mage_set_row_addr_after(uint16_t addr1, uint16_t addr2);
 
 #endif

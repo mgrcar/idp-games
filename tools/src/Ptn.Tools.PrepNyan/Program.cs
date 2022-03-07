@@ -17,9 +17,6 @@ namespace Ptn.Tools.PrepNyan
         static readonly Color white
             = Color.FromArgb(255, 255, 255, 255);
 
-        static int count
-            = 0;
-
         static void ProcessBlock(Bitmap image, Bitmap imagePrev, int x, int y, Dictionary<int, dynamic> changes, Dictionary<int, dynamic> prev)
         {
             var colors = new HashSet<Color>();
@@ -73,23 +70,22 @@ namespace Ptn.Tools.PrepNyan
             {
                 if (attr == 0x20) { val = (byte)(~val & 63); } // invert if dimmed
                 changes.Add(addr, new { addr, row, col, val, attr = attr | 128 /* flag as dirty */ });
-                if (changes.TryGetValue(addr & 0x1F, out dynamic item))
+                if (changes.TryGetValue(addr & 0xFFF8, out dynamic item))
                 {
-                    changes[addr & 0x1F] = new { item.addr, item.row, item.col, item.val, attr = item.attr | 64 /* flag block as dirty */ };
+                    changes[addr & 0xFFF8] = new { item.addr, item.row, item.col, item.val, attr = item.attr | 64 /* flag block as dirty */ };
                 }
                 else 
                 {
-                    var prevItem = prev[addr & 0x1F];
-                    changes.Add(addr & 0x1F, new { prevItem.addr, prevItem.row, prevItem.col, prevItem.val, attr = prevItem.attr | 64 /* flag block as dirty */ }); 
+                    var prevItem = prev[addr & 0xFFF8];
+                    changes.Add(addr & 0xFFF8, new { prevItem.addr, prevItem.row, prevItem.col, prevItem.val, attr = prevItem.attr | 64 /* flag block as dirty */ }); 
                 }
-                count++;
             }
         }
 
         static void Main(string[] args)
         {
-            var fileNamePrev = @"..\..\..\..\..\res\Ptn.Tools.PrepNyan\nyanidp-1.png";
-            var fileName = @"..\..\..\..\..\res\Ptn.Tools.PrepNyan\nyanidp-2.png";
+            var fileNamePrev = @"..\..\..\..\..\res\Ptn.Tools.PrepNyan\nyanidp-3.png";
+            var fileName = @"..\..\..\..\..\res\Ptn.Tools.PrepNyan\nyanidp-1.png";
             var changes = new Dictionary<int, dynamic>();
             var prev = new Dictionary<int, dynamic>();
             //Bitmap imagePrev = null;
@@ -109,7 +105,7 @@ namespace Ptn.Tools.PrepNyan
             {
                 Console.Write($"{{ {item.row}, {item.addr & 255}, {item.addr >> 8}, {item.val}, {item.attr} }}, ");
             }
-            Console.WriteLine(count);
+            Console.WriteLine(changes.Count);
         }
     }
 }
