@@ -8,7 +8,7 @@ namespace Ptn.Tools.PrepNyan
 {
     class Program
     {
-        static readonly Color black 
+        static readonly Color black
             = Color.FromArgb(255, 0, 0, 0);
         //static readonly Color green
         //    = Color.FromArgb(255, 0, 172, 0);
@@ -17,7 +17,7 @@ namespace Ptn.Tools.PrepNyan
         static readonly Color white
             = Color.FromArgb(255, 255, 255, 255);
 
-        static void ProcessBlock(Bitmap image, Bitmap imagePrev, int x, int y, Dictionary<int, dynamic> changes, Dictionary<int, dynamic> prev)
+        static void ProcessBlock(Bitmap image, Bitmap imagePrev, int x, int y, Dictionary<int, dynamic> changes, Dictionary<int, dynamic> prev, Dictionary<int, dynamic> changesNoDirty)
         {
             var colors = new HashSet<Color>();
             var colorsPrev = new HashSet<Color>();
@@ -36,7 +36,7 @@ namespace Ptn.Tools.PrepNyan
                         val = (byte)(val | (1 << (5 - (j * 2 + i))));
                     }
                     if (pxPrev != black)
-                    { 
+                    {
                         valPrev = (byte)(valPrev | (1 << (5 - (j * 2 + i))));
                     }
                 }
@@ -48,7 +48,7 @@ namespace Ptn.Tools.PrepNyan
             }
             // generate code
             byte attr = 0, attrPrev = 0;
-            if (colors.Any(x => x != black)) 
+            if (colors.Any(x => x != black))
             {
                 var color = colors.First(x => x != black);
                 if (color == white) { attr = 0x40 >> 2; }
@@ -70,14 +70,15 @@ namespace Ptn.Tools.PrepNyan
             {
                 if (attr == 0x20) { val = (byte)(~val & 63); } // invert if dimmed
                 changes.Add(addr, new { addr, row, col, val, attr = attr | 128 /* flag as dirty */ });
+                changesNoDirty.Add(addr, new { addr, row, col, val, attr });
                 if (changes.TryGetValue(addr & 0xFFF8, out dynamic item))
                 {
                     changes[addr & 0xFFF8] = new { item.addr, item.row, item.col, item.val, attr = item.attr | 64 /* flag block as dirty */ };
                 }
-                else 
+                else
                 {
                     var prevItem = prev[addr & 0xFFF8];
-                    changes.Add(addr & 0xFFF8, new { prevItem.addr, prevItem.row, prevItem.col, prevItem.val, attr = prevItem.attr | 64 /* flag block as dirty */ }); 
+                    changes.Add(addr & 0xFFF8, new { prevItem.addr, prevItem.row, prevItem.col, prevItem.val, attr = prevItem.attr | 64 /* flag block as dirty */ });
                 }
             }
         }
@@ -88,6 +89,7 @@ namespace Ptn.Tools.PrepNyan
             var fileName = @"..\..\..\..\..\res\Ptn.Tools.PrepNyan\nyanidp-1.png";
             var changes = new Dictionary<int, dynamic>();
             var prev = new Dictionary<int, dynamic>();
+            var changesNoDirty = new Dictionary<int, dynamic>();
             //Bitmap imagePrev = null;
             using (var imagePrev = new Bitmap(Image.FromFile(fileNamePrev)))
             using (var image = new Bitmap(Image.FromFile(fileName)))
@@ -97,15 +99,49 @@ namespace Ptn.Tools.PrepNyan
                 {
                     for (int x = 0; x < 200; x += 2)
                     {
-                        ProcessBlock(image, imagePrev, x, y, changes, prev);
+                        ProcessBlock(image, imagePrev, x, y, changes, prev, changesNoDirty);
                     }
                 }
             }
-            foreach (var item in changes.Values.OrderBy(x => x.addr)) 
+            foreach (var item in changes.Values.OrderBy(x => x.addr))
             {
                 Console.Write($"{{ {item.row}, {item.addr & 255}, {item.addr >> 8}, {item.val}, {item.attr} }}, ");
             }
             Console.WriteLine(changes.Count);
+            int addrPrev = -1;
+            int c = 0;
+            var items = new List<dynamic>();
+            foreach (var item in changesNoDirty.Values.OrderBy(x => x.addr))
+            {
+                if (item.addr == addrPrev + 1)
+                {
+                    items.Add(new { Val = item.val, Attr = item.attr });
+                    if (items.Count == 4) 
+                    {
+                        FlushItems(items, ref c);
+                    }
+                }
+                else 
+                {
+                    FlushItems(items, ref c);
+                    Console.Write($"0, {item.addr & 255}, {item.addr >> 8}, {item.val}, {item.attr}, "); c += 5;
+                }
+                addrPrev = item.addr;
+            }
+            FlushItems(items, ref c);
+            Console.WriteLine();
+            Console.WriteLine(c);
+        }
+
+        static void FlushItems(List<dynamic> items, ref int c)
+        {
+            if (items.Count == 0) { return; }
+            Console.Write($"{items.Count}, "); c += 1;
+            foreach (var item in items)
+            {
+                Console.Write($"{item.Val}, {item.Attr}, "); c += 2;
+            }
+            items.Clear();
         }
     }
 }
