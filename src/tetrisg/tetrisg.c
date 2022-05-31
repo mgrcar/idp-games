@@ -182,7 +182,7 @@ void render_next_block() {
 }
 
 void render_clear_next_block() { 
-	gdp_fill_rect(GDP_TOOL_PEN, 417, 40, 59, 26); 
+	gdp_fill_rect(GDP_TOOL_PEN, 834, 40, 118, 26); 
 }
 
 void render_level() {
