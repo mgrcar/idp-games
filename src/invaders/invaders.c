@@ -1,87 +1,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <stdio.h>
+//#include <fcntl.h>
+//#include <stdio.h>
 #include "invaders.h"
 #include "../common/avdc.h"
 #include "../common/utils.h"
 #include "../common/gdp.h"
 
-#define BUFFER_SIZE 3072
-
-typedef struct {
-	uint16_t x_min;
-	uint16_t x_max;
-	uint8_t invader_count;
-} grid_col;
-
-typedef struct {
-	grid_col cols[11];
-	grid_col cols_new[11];
-	uint8_t col_non_empty_first;
-	uint8_t col_non_empty_last;
-} grid;
-
-typedef enum {
-	STATE_MOVE_RIGHT = 0,
-	STATE_MOVE_LEFT  = 1,
-	STATE_HOLD       = 2
-} object_state;
-
-typedef enum {
-	GAME_STATE_EXIT,
-	GAME_STATE_LEVEL_CLEARED,
-	GAME_STATE_GAME_OVER
-} game_state;
-
-typedef enum {
-	ACTION_NONE     = 0,
-	ACTION_EXIT     = 1,
-	ACTION_CONTINUE = 2
-} user_action;
-
-typedef struct _invader {
-	uint16_t x;
-	uint8_t y;
-	uint8_t col;
-	uint8_t type;
-	uint8_t dx;
-	uint8_t width;
-	uint8_t frame;
-	object_state state;
-	bool destroyed;
-	struct _invader *next;
-	struct _invader *prev;
-} invader;
-
-typedef struct {
-	uint16_t x;
-	uint8_t wait_frame;
-	object_state state;
-	uint8_t spawn_delay_sec;
-} mothership;
-
-typedef struct {
-	object_state state;
-	uint16_t x;
-} player;
-
-typedef struct {
-	uint16_t x;
-	uint8_t bits[16][3]; // 16 rows, 3 bytes per row
-} shield;
-
-typedef struct {
-	uint16_t x;
-	uint8_t y;
-	uint8_t explode_frame;
-	// collision info
-	invader *hit_invader;
-	bool hit_mothership;
-	shield *hit_shield;
-	uint8_t hit_shield_y;
-} missle;
+//#define BUFFER_SIZE 3072
+#define BUFFER_SIZE 256
 
 uint8_t buffer[BUFFER_SIZE];
 
@@ -383,14 +311,14 @@ uint8_t *gfx_player_explode[][1] = {
 };
 
 uint8_t invader_type_by_row[] = { 0, 1, 1, 2, 2 };
-
 uint8_t invader_dx_by_type[] = { 2 << 1, 1 << 1, 0 };
 uint8_t invader_width_by_type[] = { 8 << 1, 11 << 1, 12 << 1 };
+uint8_t invader_score_by_type[] = { 30, 20, 10 };
+
 uint8_t gfx_dx_by_state[] = { 4 << 1, 0 };
 
-uint8_t player_score_by_type[] = { 30, 20, 10 };
-uint16_t player_score_mothership[] = { 0, 50, 50, 50, 50, 150, 50, 50, 100, 150, 50, 150, 100, 50, 100, 50, 150, 100, 150, 50, 150, 50, 150, 300 };
-uint8_t player_score_mothership_idx = 0;
+uint16_t mothership_score[] = { 0, 50, 50, 50, 50, 150, 50, 50, 100, 150, 50, 150, 100, 50, 100, 50, 150, 100, 150, 50, 150, 50, 150, 300 };
+uint8_t mothership_score_idx = 0;
 
 // config
 
@@ -584,6 +512,16 @@ void player_move_left() {
 	player_draw(STATE_MOVE_LEFT);
 }
 
+void player_score_update(uint16_t points) {
+	score += points;
+	if (score > 9999) { score = 9999; }
+	render_score();
+	if (score > hi_score) {
+		hi_score = score;
+		render_hi_score();
+	}
+}
+
 void mothership_draw(object_state state) {
 	gdp_draw_sprite(gfx_mothership[state], 6, mothership.x - gfx_dx_by_state[state], 38);
 }
@@ -615,11 +553,8 @@ void mothership_explode_clear() {
 	gdp_fill_rect(GDP_TOOL_ERASER, mothership.x, 37, 21 << 1, 8);
 }
 
-user_action render_text_at(uint16_t x, uint8_t y, uint8_t *text, int delay);
-void player_score_update(uint16_t score);
-
 void mothership_score_draw() {
-	uint16_t points = player_score_mothership[player_score_mothership_idx];
+	uint16_t points = mothership_score[mothership_score_idx];
 	render_text_at(mothership.x + (points == 50 ? 8 : 0), 45, itoa(points, buffer, 10), 0);
 }
 
@@ -635,6 +570,52 @@ void missle_explode_draw() {
 
 void missle_explode_clear() {
 	gdp_fill_rect(GDP_TOOL_ERASER, missle.x - 6, 30, 8 << 1, 8);
+}
+
+bool missle_handle_hit() {
+	for (uint8_t col = 0; col < 11; col++) {
+		if (missle.x >= grid.cols[col].x_min && missle.x <= grid.cols[col].x_max) {
+			// we might have hit an invader in column 'col'
+			for (int8_t row = 4; row >= 0; row--) {
+				invader *inv = &invaders[row * 11 + col];
+				if (!inv->destroyed && invader_check_hit(inv, missle.x, missle.y - 3, missle.y + cfg_missle_speed)) {
+					inv->destroyed = true;
+					grid.cols[inv->col].invader_count--;
+					missle.explode_frame = cfg_invader_explode_frames;
+					missle.hit_invader = inv;
+					invader_explode_draw(inv);
+					// remove from linked list
+					if (inv->prev != NULL) {
+						inv->prev->next = inv->next;
+					} else {
+						first_inv = inv->next;
+					}
+					if (inv->next != NULL) {
+						inv->next->prev = inv->prev;
+					}
+					player_score_update(invader_score_by_type[inv->type]);
+					return true;
+				}
+			}
+		}
+	}
+	if (mothership_check_hit(missle.x, missle.y - 3, missle.y + cfg_missle_speed)) {
+		missle.hit_mothership = true;
+		missle.explode_frame = cfg_mothership_explode_frames + cfg_mothership_score_frames;
+		mothership_explode_draw();
+		return true;
+	} else {
+		// TODO: check missle y first?
+		for (uint8_t i = 0; i < 4; i++) {
+			if (missle.hit_shield_y = shield_check_hit(&shields[i], missle.x, missle.y - 3, missle.y + cfg_missle_speed)) {
+				missle.hit_shield = &shields[i];
+				missle.explode_frame = cfg_shield_hit_frames;
+				gdp_draw_sprite(gfx_missle_explode, 7, missle.x - (3 << 1), missle.hit_shield_y - 3);
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 void shield_draw(shield *shield, uint8_t start_row) {
@@ -676,8 +657,6 @@ uint8_t shield_check_hit(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bo
 	return 0;
 }
 
-// main game loop
-
 /*void _render_background(uint8_t *file_name) {
 	int fd = open(file_name, O_RDONLY);
 	ssize_t read_size = 0;
@@ -704,24 +683,6 @@ uint8_t shield_check_hit(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bo
 
 	gdp_set_display_page(gdp_write_page);
 }*/
-
-user_action game_intro_keyboard_handler(uint16_t timeout_ms) {
-	timer_reset(0);
-	uint16_t timeout = timeout_ms / 10;
-	do {
-		char key;
-		if (key = kbhit()) {
-			switch (key) {
-				case 'x':
-				case 'X':
-					return ACTION_EXIT;
-				default:
-					return ACTION_CONTINUE;
-			}
-		}
-	} while (timer_diff() < timeout);
-	return ACTION_NONE;
-}
 
 user_action render_plain_text(uint8_t *text, int delay) {
     uint8_t i = 0;
@@ -778,12 +739,6 @@ void render_score() {
 	render_text_at(161 << 1, 21 + 7, buffer + 1, 0);
 }
 
-void player_score_update(uint16_t points) {
-	score += points;
-	if (score > 9999) { score = 9999; }
-	render_score();
-}
-
 void render_level() {
 	gdp_fill_rect(GDP_TOOL_ERASER, 254 << 1, 21, 5 << 1, 7);
 	render_text_at(254 << 1, 21 + 7, itoa(level, buffer, 10), 0);
@@ -836,52 +791,22 @@ void render_game_over() {
 	// TODO
 }
 
-bool missle_handle_hit() {
-	for (uint8_t col = 0; col < 11; col++) {
-		if (missle.x >= grid.cols[col].x_min && missle.x <= grid.cols[col].x_max) {
-			// we might have hit an invader in column 'col'
-			for (int8_t row = 4; row >= 0; row--) {
-				invader *inv = &invaders[row * 11 + col];
-				if (!inv->destroyed && invader_check_hit(inv, missle.x, missle.y - 3, missle.y + cfg_missle_speed)) {
-					inv->destroyed = true;
-					grid.cols[inv->col].invader_count--;
-					missle.explode_frame = cfg_invader_explode_frames;
-					missle.hit_invader = inv;
-					invader_explode_draw(inv);
-					// remove from linked list
-					if (inv->prev != NULL) {
-						inv->prev->next = inv->next;
-					} else {
-						first_inv = inv->next;
-					}
-					if (inv->next != NULL) {
-						inv->next->prev = inv->prev;
-					}
-					player_score_update(player_score_by_type[inv->type]);
-					return true;
-				}
+user_action game_intro_keyboard_handler(uint16_t timeout_ms) {
+	timer_reset(0);
+	uint16_t timeout = timeout_ms / 10;
+	do {
+		char key;
+		if (key = kbhit()) {
+			switch (key) {
+				case 'x':
+				case 'X':
+					return ACTION_EXIT;
+				default:
+					return ACTION_CONTINUE;
 			}
 		}
-	}
-	if (mothership_check_hit(missle.x, missle.y - 3, missle.y + cfg_missle_speed)) {
-		missle.hit_mothership = true;
-		missle.explode_frame = cfg_mothership_explode_frames + cfg_mothership_score_frames;
-		mothership_explode_draw();
-		// score either 50, 100, 150 or 300 points
-		player_score_update(player_score_mothership[player_score_mothership_idx]);
-		return true;
-	} else {
-		// TODO: check missle y first?
-		for (uint8_t i = 0; i < 4; i++) {
-			if (missle.hit_shield_y = shield_check_hit(&shields[i], missle.x, missle.y - 3, missle.y + cfg_missle_speed)) {
-				missle.hit_shield = &shields[i];
-				missle.explode_frame = cfg_shield_hit_frames;
-				gdp_draw_sprite(gfx_missle_explode, 7, missle.x - (3 << 1), missle.hit_shield_y - 3);
-				return true;
-			}
-		}
-	}
-	return false;
+	} while (timer_diff() < timeout);
+	return ACTION_NONE;
 }
 
 user_action game_intro() {
@@ -1076,8 +1001,8 @@ game_state game() {
 					if (missle.x == 0) {
 						missle.x = player.x + (6 << 1);
 						missle.y = 220 + cfg_missle_speed;
-						player_score_mothership_idx++;
-						if (player_score_mothership_idx > 23) { player_score_mothership_idx = 9; }
+						mothership_score_idx++;
+						if (mothership_score_idx > 23) { mothership_score_idx = 9; }
 					}
 					break;
 				case 'b':
@@ -1104,7 +1029,7 @@ game_state game() {
 				if (missle.explode_frame == cfg_mothership_score_frames && missle.hit_mothership) {
 					mothership_explode_clear();
 					mothership_score_draw();
-					player_score_update(player_score_mothership[player_score_mothership_idx]);
+					player_score_update(mothership_score[mothership_score_idx]);
 				} else if (missle.explode_frame == 1) {
 					if (missle.hit_mothership) {
 						mothership_explode_clear();
@@ -1122,8 +1047,7 @@ game_state game() {
 					missle.x = 0;
 				}
 				missle.explode_frame--;
-			}
-			else if (missle.x > 0) {
+			} else if (missle.x > 0) {
 				if (missle.y < 220 + cfg_missle_speed) {
 					gdp_set_xy(missle.x, missle.y);
 					gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
@@ -1233,7 +1157,7 @@ int main() {
 				level++;
 				if (level == 10) { level = 9; }
 				render_level();
-			} else { //if (state == GAME_STATE_GAME_OVER) {
+			} else { // state == GAME_STATE_GAME_OVER
 				if (credits == 0) {
 					break;
 				}
