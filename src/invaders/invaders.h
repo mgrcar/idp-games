@@ -111,6 +111,7 @@ void player_draw(object_state state);
 void player_move_right();
 void player_move_left();
 void player_score_update(uint16_t points);
+void player_explode_animate();
 
 // mothership
 
@@ -148,13 +149,13 @@ void render_credits();
 void render_lives();
 void render_clear_line(uint8_t y);
 void render_cls();
-void render_game_over();
 
 // game
 
 user_action game_intro_keyboard_handler(uint16_t timeout_ms);
 user_action game_intro();
 void game_init();
+void game_over();
 game_state game();
 
 // main

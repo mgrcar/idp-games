@@ -302,11 +302,25 @@ uint8_t *gfx_caron[] = {
 };
 
 // [frame][scanline]
-uint8_t *gfx_player_explode[][1] = {
+uint8_t *gfx_player_explode[][8] = {
 	{
-		""
+		"\x03\x86\xC1\x89",
+		"\x03\x8B\xC1\x84",
+		"\x07\x86\xC1\x81\xC1\x81\xC1\x85",
+		"\x05\x83\xC1\x82\xC1\x89",
+		"\x05\x87\xC2\x81\xC2\x84",
+		"\x0B\x81\xC1\x83\xC1\x81\xC2\x81\xC1\x81\xC1\x83",
+		"\x05\x83\xC8\x82\xC1\x82",
+		"\x06\x82\xCA\x81\xC1\x81\xC1"
 	}, {
-		""
+		"\x05\x83\xC1\x89\xC1\x82",
+		"\x07\xC1\x85\xC1\x84\xC2\x82\xC1",
+		"\x05\x83\xC1\x84\xC2\x86",
+		"\x05\x86\xC1\x87\xC1\x81",
+		"\x0A\x81\xC1\x82\xC1\x81\xC2\x82\xC2\x83\xC1",
+		"\x07\x82\xC1\x84\xC3\x83\xC1\x82",
+		"\x03\x83\xC9\x84",
+		"\x07\x82\xC2\x81\xC7\x82\xC1\x81"
 	}
 };
 
@@ -522,6 +536,17 @@ void player_score_update(uint16_t points) {
 	}
 }
 
+void player_explode_animate() {
+	timer_reset(0);
+	uint8_t frame = 0;
+	do {
+		uint8_t **sprite = gfx_player_explode[frame = 1 - frame];
+		gdp_draw_sprite(sprite, 7, player.x - 1, 221);
+		msleep(80);
+	} while (timer_diff() < 300);
+	gdp_fill_rect(GDP_TOOL_ERASER, player.x - 1, 221, 16 << 1, 8);
+}
+
 void mothership_draw(object_state state) {
 	gdp_draw_sprite(gfx_mothership[state], 6, mothership.x - gfx_dx_by_state[state], 38);
 }
@@ -690,6 +715,8 @@ user_action render_plain_text(uint8_t *text, int delay) {
     while (text[i] != 0) {
     	if (delay > 0) {
 	   		if (action = game_intro_keyboard_handler(delay)) { return action; }
+	   	} else if (delay < 0) {
+	   		msleep(-delay);
 	   	}
         gdp_wait_ready();
     	GDP_CTRL_1 = GDP_CTRL_1_TOOL_DOWN | GDP_TOOL_PEN;
@@ -784,11 +811,6 @@ void render_cls() {
 	for (uint8_t y = 30; y < 242; y++) {
 		render_clear_line(y);
 	}
-}
-
-void render_game_over() {
-	msleep(5000);
-	// TODO
 }
 
 user_action game_intro_keyboard_handler(uint16_t timeout_ms) {
@@ -947,6 +969,15 @@ void game_init() {
 	}
 }
 
+void game_over() {
+	render_text_at(218 << 1, 61, "KONEC IGRE", -100);
+	msleep(1000);
+	timer_reset(0);
+	do {
+		if (kbhit()) { break; }
+	} while (timer_diff() < 500);
+}
+
 game_state game() {
 	while (true) {
 		invader *inv = first_inv;
@@ -961,7 +992,8 @@ game_state game() {
 					invader_move_right(inv);
 				} else {
 					if (invader_move_down_left(inv)) {
-						render_game_over();
+						player_explode_animate();
+						game_over();
 						return GAME_STATE_GAME_OVER;
 					}
 					inv->state = STATE_MOVE_LEFT;
@@ -971,7 +1003,8 @@ game_state game() {
 					invader_move_left(inv);
 				} else {
 					if (invader_move_down_right(inv)) {
-						render_game_over();
+						player_explode_animate();
+						game_over();
 						return GAME_STATE_GAME_OVER;
 					}
 					inv->state = STATE_MOVE_RIGHT;
@@ -1161,11 +1194,12 @@ int main() {
 				if (credits == 0) {
 					break;
 				}
+				score = 0;
 				lives = 3;
 				credits--;
-				// score = 0; // WARNME: do you keep your score if you still have credits?
-				// render_score();
-				//render_lives(); // NOTE: done by game_init
+				level = 1;
+				render_score();
+				render_level();
 				render_credits();
 			}
 		}
