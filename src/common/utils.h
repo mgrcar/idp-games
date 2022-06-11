@@ -35,6 +35,7 @@ void kbd_beep(bool long_beep);
 
 // other
 
-bool idp_is_emu();
+bool sys_is_emu();
+int sys_rand();
 
 #endif

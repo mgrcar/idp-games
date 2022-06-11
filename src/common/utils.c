@@ -44,10 +44,14 @@ void kbd_beep(bool long_beep) {
 
 // other
 
-bool idp_is_emu() {
+bool sys_is_emu() {
 	static int _idp_is_emu = -1;
 	if (_idp_is_emu == -1) {
 		_idp_is_emu = avdc_get_pointer(0, 0) == 0xFFFF;
 	}
 	return _idp_is_emu;
+}
+
+int sys_rand() {
+	return rand() / 10; // WARNME: this should be removed when rand is fixed
 }

@@ -23,7 +23,7 @@ void gdp_init() {
     gdp_write_page = 0;
     gdp_display_page = 0;
     GDP_SCROLL = 0;
-    if (idp_is_emu()) {
+    if (sys_is_emu()) {
         __asm
             ld  hl, #call_gdp_line_dx_pos_dotted
             ld  bc, #_gdp_line_dx_pos_dotted_emu
@@ -181,6 +181,29 @@ void gdp_draw_row_sprite(uint8_t *sprite_row) { // TODO: asm implementation?
     }
 }
 
+void gdp_erase_row_sprite(uint8_t *sprite_row) { // TODO: asm implementation?
+    uint8_t b;
+    uint8_t len = sprite_row[0];
+    if (len > 0) {
+        uint8_t q = (sprite_row[1] >> 7) & 1;
+        for (uint8_t i = 1; i < len; i++) {
+            b = sprite_row[i];
+            q = (q << 1) | ((sprite_row[i + 1] >> 7) & 1);
+            gdp_wait_ready();
+            GDP_CTRL_1 = (((b >> 7) & 1) | ((b >> 5) & 2)) & 0xFD;
+            GDP_CTRL_2 = GDP_STYLE_NORMAL;
+            GDP_DX = (((b & 63) << 1) | ((q >> 2) & (~q >> 1) & 1)) - ((q >> 1) & ~q & 1);
+            GDP_CMD = GDP_CMD_LINE_DX_POS;
+        }
+        b = sprite_row[len];
+        gdp_wait_ready();
+        GDP_CTRL_1 = (((b >> 7) & 1) | ((b >> 5) & 2)) & 0xFD;
+        GDP_CTRL_2 = GDP_STYLE_NORMAL;
+        GDP_DX = ((b & 63) << 1) - 1;
+        GDP_CMD = GDP_CMD_LINE_DX_POS;
+    }
+}
+
 void gdp_draw_row(uint8_t *image_row) {
     uint8_t len = image_row[0];
     gdp_tool tool = GDP_TOOL_PEN; // tool can be GDP_TOOL_ERASER (0) or GDP_TOOL_PEN (2)
@@ -265,6 +288,17 @@ void gdp_draw_sprite(uint8_t **sprite, uint8_t last_row_idx, uint16_t x, uint8_t
         if (i != j) {
             gdp_set_xy(x, j + y);
             gdp_draw_row_sprite(sprite[j]); 
+        }
+    }
+}
+
+void gdp_erase_sprite(uint8_t **sprite, uint8_t last_row_idx, uint16_t x, uint8_t y) {
+    for (int i = 0, j = last_row_idx; i <= j; i++, j--) {
+        gdp_set_xy(x, i + y);
+        gdp_erase_row_sprite(sprite[i]); 
+        if (i != j) {
+            gdp_set_xy(x, j + y);
+            gdp_erase_row_sprite(sprite[j]); 
         }
     }
 }

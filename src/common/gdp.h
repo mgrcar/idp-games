@@ -75,9 +75,11 @@ void gdp_set_display_page(uint8_t page);
 void gdp_draw_row(uint8_t *image_row);
 void gdp_draw_row_xor_mask(uint8_t *mask_row);
 void gdp_draw_row_sprite(uint8_t *sprite_row);
+void gdp_erase_row_sprite(uint8_t *sprite_row);
 void gdp_draw(uint8_t **image, uint8_t last_row_idx, uint16_t x, uint8_t y);
 void gdp_draw_xor_mask(uint8_t **mask, uint8_t last_row_idx, uint16_t x, uint8_t y);
 void gdp_draw_sprite(uint8_t **sprite, uint8_t last_row_idx, uint16_t x, uint8_t y);
+void gdp_erase_sprite(uint8_t **sprite, uint8_t last_row_idx, uint16_t x, uint8_t y);
 
 void gdp_draw_rect(gdp_tool tool, uint16_t x, uint8_t y, uint8_t w, uint8_t h);
 void gdp_fill_rect(gdp_tool tool, uint16_t x, uint8_t y, uint8_t w, uint8_t h);
