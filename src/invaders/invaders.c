@@ -1,14 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-//#include <fcntl.h>
-//#include <stdio.h>
 #include "invaders.h"
 #include "../common/avdc.h"
 #include "../common/utils.h"
 #include "../common/gdp.h"
 
-//#define BUFFER_SIZE 3072
 #define BUFFER_SIZE 256
 #define MAX_BULLETS 3
 
@@ -329,10 +326,8 @@ uint8_t *gfx_player_explode[][8] = {
 
 // [type][frame][scanline]
 uint8_t *gfx_bullet[][4][7] = {
-	{
-		// type 0
-		{
-			// frame 0
+	{ // type 0
+		{ // frame 0
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x01\xC2",
@@ -340,8 +335,7 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x02\x01\xC1",
 			"\x01\xC2",
 			"\x02\x01\xC2"
-		}, {
-			// frame 1
+		}, { // frame 1
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
@@ -349,8 +343,7 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1"
-		}, {
-			// frame 2
+		}, { // frame 2
 			"\x02\x01\xC2",
 			"\x01\xC2",
 			"\x02\x01\xC1",
@@ -358,8 +351,7 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x01\xC2",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1"
-		}, {
-			// frame 3
+		}, { // frame 3
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
@@ -368,10 +360,8 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x02\x01\xC1",
 			"\x02\x01\xC1"
 		}
-	}, {
-		// type 1
-		{
-			// frame 0
+	}, { // type 1
+		{ // frame 0
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
@@ -379,8 +369,7 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x00"
-		}, {
-			// frame 1
+		}, { // frame 1
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x01\xC3",
@@ -388,8 +377,7 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x00"
-		}, {
-			// frame 2
+		}, { // frame 2
 			"\x01\xC3",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
@@ -397,8 +385,7 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x00"
-		}, {
-			// frame 3
+		}, { // frame 3
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
@@ -407,10 +394,8 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x01\xC3",
 			"\x00"
 		}
-	}, {
-		// type 2
-		{
-			// frame 0
+	}, { // type 2
+		{ // frame 0
 			"\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x02\xC1",
@@ -418,8 +403,7 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x02\xC1"
-		}, {
-			// frame 1
+		}, { // frame 1
 			"\x02\x01\xC1",
 			"\x02\x02\xC1",
 			"\x02\x01\xC1",
@@ -427,8 +411,7 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x02\x01\xC1",
 			"\x02\x02\xC1",
 			"\x02\x01\xC1"
-		}, {
-			// frame 2
+		}, { // frame 2
 			"\x02\x02\xC1",
 			"\x02\x01\xC1",
 			"\x01\xC1",
@@ -436,8 +419,7 @@ uint8_t *gfx_bullet[][4][7] = {
 			"\x02\x02\xC1",
 			"\x02\x01\xC1",
 			"\x01\xC1"
-		}, {
-			// frame 3
+		}, { // frame 3
 			"\x02\x01\xC1",
 			"\x01\xC1",
 			"\x02\x01\xC1",
@@ -487,11 +469,10 @@ const uint8_t cfg_bullet_speed = 4;                    // x >= 1
 const uint8_t cfg_invader_speed = 2 << 1;              // do not change!
 const uint8_t cfg_mothership_wait_frames = 1;          // x >= 1
 const uint8_t cfg_mothership_step = 1 << 1;       	   // 1 << 1 =< x <= 4 << 1
-const uint8_t cfg_mothership_spawn_delay_min_sec = 15; // x >= 0
-const uint8_t cfg_mothership_spawn_delay_max_sec = 35; // x >= cfg_mothership_spawn_delay_min_sec
-const uint16_t cfg_invader_fire_delay_min_sec10 = 50;  // x >= 0
-const uint16_t cfg_invader_fire_delay_max_sec10 = 200; // x >= cfg_invader_fire_delay_min_sec10
-
+const uint16_t cfg_mothership_spawn_delay_min = 1500;  // x >= 0
+const uint16_t cfg_mothership_spawn_delay_max = 3500;  // x >= cfg_mothership_spawn_delay_min_sec
+const uint16_t cfg_invader_fire_delay_min = 50;        // x >= 0
+const uint16_t cfg_invader_fire_delay_max = 200;       // x >= cfg_invader_fire_delay_min
 const uint8_t cfg_player_speed = 1 << 1;               // 1 << 1 =< x <= 4 << 1 // NOTE: With 3 bullets, cfg_mothership_step and cfg_player_speed should be 3. Not sure if this works though.
 
 uint8_t cfg_invader_row_offset = 0;                    // x >= 0
@@ -696,8 +677,8 @@ void invader_fire() {
 
 void invader_fire_timer_reset() {
 	invader_fire_timer = timer();
-	invader_fire_delay = cfg_invader_fire_delay_min_sec10 +
-		(sys_rand() % (cfg_invader_fire_delay_max_sec10 - cfg_invader_fire_delay_min_sec10 + 1));
+	invader_fire_delay = cfg_invader_fire_delay_min +
+		(sys_rand() % (cfg_invader_fire_delay_max - cfg_invader_fire_delay_min + 1));
 }
 
 void player_draw(object_state state) {
@@ -778,9 +759,9 @@ void mothership_score_draw() {
 }
 
 void mothership_timer_reset() {
-	timer_reset(0);
-	mothership.spawn_delay_sec = cfg_mothership_spawn_delay_min_sec +
-		(sys_rand() % (cfg_mothership_spawn_delay_max_sec - cfg_mothership_spawn_delay_min_sec + 1));
+	mothership.spawn_timer = timer();
+	mothership.spawn_delay = cfg_mothership_spawn_delay_min +
+		(sys_rand() % (cfg_mothership_spawn_delay_max - cfg_mothership_spawn_delay_min + 1));
 }
 
 void missle_explode_draw() {
@@ -892,7 +873,7 @@ bool shield_check_hit_pixel(shield *shield, uint8_t x_local, int8_t y_local) { /
 	return ((byte << (x_local & 7)) & 128) != 0;
 }
 
-uint8_t shield_check_hit(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bottom, bool from_bottom) { // returns world coords of hit, or 0
+uint8_t shield_check_hit(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bottom, bool from_bottom) { // returns world coords of hit (or 0)
 	// check bounding box
 	if (x >= shield->x && x < shield->x + (22 << 1)
 		&& ((y_top <= 197 && y_bottom >= 197) || (y_top >= 197 && y_top <= 197 + 16))) {
@@ -971,24 +952,24 @@ user_action render_text_at(uint16_t x, uint8_t y, uint8_t *text, int delay) {
 void render_score() {
 	gdp_fill_rect(GDP_TOOL_ERASER, 161 << 1, 21, 29 << 1, 7);
 	itoa((long)score + 10000, buffer, 10);
-	render_text_at(161 << 1, 21 + 7, buffer + 1, 0);
+	render_text_at(161 << 1, 28, buffer + 1, 0);
 }
 
 void render_level() {
 	gdp_fill_rect(GDP_TOOL_ERASER, 254 << 1, 21, 5 << 1, 7);
-	render_text_at(254 << 1, 21 + 7, itoa(level, buffer, 10), 0);
+	render_text_at(254 << 1, 28, itoa(level, buffer, 10), 0);
 }
 
 void render_hi_score() {
 	gdp_fill_rect(GDP_TOOL_ERASER, 321 << 1, 21, 29 << 1, 7);
 	itoa((long)hi_score + 10000, buffer, 10);
-	render_text_at(321 << 1, 21 + 7, buffer + 1, 0);
+	render_text_at(321 << 1, 28, buffer + 1, 0);
 }
 
 void render_credits() {
 	gdp_fill_rect(GDP_TOOL_ERASER, 345 << 1, 244, 13 << 1, 7);
 	itoa((long)credits + 100, buffer, 10);
-	render_text_at(345 << 1, 244 + 7, buffer + 1, 0);
+	render_text_at(345 << 1, 251, buffer + 1, 0);
 }
 
 void render_lives() {
@@ -1005,7 +986,7 @@ void render_lives() {
 		}
 	}
 	gdp_fill_rect(GDP_TOOL_ERASER, 153 << 1, 244, 5 << 1, 7);
-	render_text_at(153 << 1, 244 + 7, itoa(lives, buffer, 10), 0);
+	render_text_at(153 << 1, 251, itoa(lives, buffer, 10), 0);
 }
 
 void render_clear_line(uint8_t y) {
@@ -1041,20 +1022,19 @@ user_action game_intro_keyboard_handler(uint16_t timeout_ms) {
 
 user_action game_intro() {
 	user_action action;
-	if (/*(action = game_intro_keyboard_handler(1000)) ||*/
-		(action = render_text_at(238 << 1, 63 + 7, "IGRAJ", 100)) ||
-		(action = render_text_at(194 << 1, 87 + 7, "NAPAD IZ VESOLJA", 100))) {
+	if ((action = render_text_at(238 << 1, 70, "IGRAJ", 100)) ||
+		(action = render_text_at(194 << 1, 94, "NAPAD IZ VESOLJA", 100))) {
 		return action;
 	}
-	render_text_at(162 << 1, 119 + 7, "*TOC^KOVALNA PREGLEDNICA*", 0);
+	render_text_at(162 << 1, 126, "*TOC^KOVALNA PREGLEDNICA*", 0);
 	gdp_draw_sprite(gfx_mothership[STATE_MOVE_LEFT], 6, 217 << 1, 135);
 	gdp_draw_sprite(gfx_invaders[0][STATE_MOVE_LEFT][0], 7, 219 << 1, 150);
 	gdp_draw_sprite(gfx_invaders[1][STATE_MOVE_LEFT][1], 7, 219 << 1, 166);
 	gdp_draw_sprite(gfx_invaders[2][STATE_MOVE_LEFT][0], 7, 219 << 1, 182);
-	if ((action = render_text_at(234 << 1, 135 + 7, "=NEZNANO", 100)) ||
-		(action = render_text_at(234 << 1, 151 + 7, "=30 TOC^K", 100)) ||
-		(action = render_text_at(234 << 1, 167 + 7, "=20 TOC^K", 100)) ||
-		(action = render_text_at(234 << 1, 183 + 7, "=10 TOC^K", 100))) {
+	if ((action = render_text_at(234 << 1, 142, "=NEZNANO", 100)) ||
+		(action = render_text_at(234 << 1, 158, "=30 TOC^K", 100)) ||
+		(action = render_text_at(234 << 1, 174, "=20 TOC^K", 100)) ||
+		(action = render_text_at(234 << 1, 190, "=10 TOC^K", 100))) {
 		return action;
 	}
 	while (true) {
@@ -1264,10 +1244,6 @@ game_state game() {
 				case 'n':
 				case 'N':
 					return GAME_STATE_LEVEL_CLEARED;
-				//case 'w':
-				//case 'W':
-				//	invader_fire();
-				//	break;
 				default:
 					// stop
 					player.state = STATE_HOLD;
@@ -1388,7 +1364,7 @@ game_state game() {
 			// update mothership
 			if (!missle.hit_mothership) {
 				if (mothership.x == 0) {
-					if (timer_diff() / 100 >= mothership.spawn_delay_sec) {
+					if (timer_diff_ex(mothership.spawn_timer, 0) >= mothership.spawn_delay) {
 						mothership.state = sys_rand() % 2 == 0
 							? STATE_MOVE_LEFT
 							: STATE_MOVE_RIGHT;
@@ -1438,10 +1414,10 @@ int main() {
 		credits = credits > 1 ? credits : 1;
 		level = 1;
 		gdp_cls();
-		render_text_at(153 << 1, 5 + 7, "TOC^KE", 0);
-		render_text_at(230 << 1, 5 + 7, "STOPNJA", 0);
-		render_text_at(313 << 1, 5 + 7, "REKORD", 0);
-		render_text_at(290 << 1, 244 + 7, "Z^ETONI", 0);
+		render_text_at(153 << 1, 12, "TOC^KE", 0);
+		render_text_at(230 << 1, 12, "STOPNJA", 0);
+		render_text_at(313 << 1, 12, "REKORD", 0);
+		render_text_at(290 << 1, 251, "Z^ETONI", 0);
 		render_score();
 		render_level();
 		render_hi_score();

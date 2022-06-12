@@ -53,7 +53,8 @@ typedef struct {
 	uint16_t x;
 	uint8_t wait_frame;
 	object_state state;
-	uint8_t spawn_delay_sec;
+	uint16_t spawn_delay;
+	uint16_t spawn_timer;
 } mothership;
 
 typedef struct {

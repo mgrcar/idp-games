@@ -407,7 +407,7 @@ bool block_drop() {
 
 bool block_next() {
 	if (block_type_next == -1) {
-		block_type_next = rand() % 7;
+		block_type_next = sys_rand() % 7;
 	}
 	block_type = block_type_next;
 	block_rot = 0;
@@ -416,7 +416,7 @@ bool block_next() {
 	stats[block_type]++;
 	if (stats[block_type] > 1428) { stats[block_type] = 1428; } // prevent overflow (also of the overall sum)
 	render_stats();
-	block_type_next = rand() % 7;
+	block_type_next = sys_rand() % 7;
 	bool success = block_check(block_pos_x, block_pos_y, block_rot);
 	render_block();
 	if (success && show_next) { render_next_block(); }

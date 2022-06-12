@@ -633,13 +633,13 @@ bool block_drop() {
 
 bool block_next() {
 	if (block_type_next == -1) {
-		block_type_next = rand() % 7;
+		block_type_next = sys_rand() % 7;
 	}
 	block_type = block_type_next;
 	block_rot = 0;
 	block_pos_x = 3;
 	block_pos_y = -1;
-	block_type_next = rand() % 7;
+	block_type_next = sys_rand() % 7;
 	bool success = block_check(block_pos_x, block_pos_y, block_rot);
 	render_block(-50, -50, block_rot); 
 	if (success && show_next) { render_next_block(); } 
