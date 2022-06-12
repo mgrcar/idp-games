@@ -28,6 +28,12 @@ int16_t timer_diff() {
 	return (now + 6000) - (timer_start + timer_offset); 
 }
 
+int16_t timer_diff_ex(uint16_t timer_start, uint16_t timer_offset) {
+	int16_t now = timer();
+	if (now >= timer_start) { return now - (timer_start + timer_offset); }
+	return (now + 6000) - (timer_start + timer_offset); 
+}
+
 // keyboard
 
 void kbd_wait_ready() {

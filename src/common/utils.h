@@ -20,6 +20,7 @@ int16_t timer();
 
 void timer_reset(int16_t offset);
 int16_t timer_diff();
+int16_t timer_diff_ex(uint16_t timer_start, uint16_t timer_offset);
 
 // keyboard
 

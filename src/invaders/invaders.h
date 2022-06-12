@@ -73,8 +73,6 @@ typedef struct {
 	// collision info
 	invader *hit_invader;
 	bool hit_mothership;
-	shield *hit_shield;
-	uint8_t hit_shield_y;
 } missle;
 
 typedef struct {
@@ -113,6 +111,9 @@ bool invader_move_down_right(invader *inv);
 bool invader_check_hit(invader *inv, uint16_t x, uint8_t y_top, uint8_t y_bottom);
 void invader_explode_draw(invader *inv);
 void invader_explode_clear(invader *inv);
+int invader_select_shooter();
+void invader_fire();
+void invader_fire_timer_reset();
 
 // player
 
@@ -143,7 +144,6 @@ bool missle_handle_hit();
 
 // bullet
 
-void bullet_create();
 void bullet_draw(bullet *b);
 void bullet_explode_draw(bullet *b);
 void bullet_explode_clear(bullet *b);
