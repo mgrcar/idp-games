@@ -50,7 +50,7 @@ uint8_t bits_shield_damage_bullet[] = {
 	/* 01010100 */ 84
 };
 
-uint8_t shield_bits[][3] = {
+uint8_t bits_shield[][3] = {
 	{ 15,  255, 192 },
 	{ 31,  255, 224 },
 	{ 63,  255, 240 },
@@ -458,15 +458,15 @@ uint8_t mothership_score_idx = 0;
 // config
 
 const uint8_t cfg_missle_explode_frames = 12;          // x >= 1
-const uint8_t cfg_bullet_explode_frames = 4;           // x >= 1 // NOTE: this will be multiplied by MAX_BULLETS
+const uint8_t cfg_bullet_explode_frames = 4;           // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
 const uint8_t cfg_invader_explode_frames = 12;         // x >= 1
 const uint8_t cfg_shield_hit_frames = 12;			   // x >= 1
-const uint8_t cfg_bullet_shield_hit_frames = 4;		   // x >= 1 // NOTE: this will be multiplied by MAX_BULLETS
-const uint8_t cfg_mothership_explode_frames = 36;      // x >= 1
-const uint8_t cfg_mothership_score_frames = 100;       // x >= 1
+const uint8_t cfg_bullet_shield_hit_frames = 4;		   // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
+const uint8_t cfg_mothership_explode_frames = 24;      // x >= 1
+const uint8_t cfg_mothership_score_frames = 40;        // x >= 1
 const uint8_t cfg_missle_speed = 4;			           // x >= 4
 const uint8_t cfg_bullet_speed = 4;                    // x >= 1
-const uint8_t cfg_invader_speed = 2 << 1;              // do not change!
+const uint8_t cfg_invader_speed = 2 << 1;              // x = 2 << 1 // WARNME: do not change!
 const uint8_t cfg_mothership_wait_frames = 1;          // x >= 1
 const uint8_t cfg_mothership_step = 1 << 1;       	   // 1 << 1 =< x <= 4 << 1
 const uint16_t cfg_mothership_spawn_delay_min = 1500;  // x >= 0
@@ -560,10 +560,18 @@ void grid_reset() {
 }
 
 void grid_update(uint8_t col_idx, uint16_t x_min, uint16_t x_max) {
-	if (grid.cols[col_idx].x_min > x_min) { grid.cols[col_idx].x_min = x_min; }
-	if (grid.cols[col_idx].x_max < x_max) { grid.cols[col_idx].x_max = x_max; }
-	if (grid.cols_new[col_idx].x_min > x_min) { grid.cols_new[col_idx].x_min = x_min; }
-	if (grid.cols_new[col_idx].x_max < x_max) { grid.cols_new[col_idx].x_max = x_max; }
+	if (grid.cols[col_idx].x_min > x_min) { 
+		grid.cols[col_idx].x_min = x_min; 
+	}
+	if (grid.cols[col_idx].x_max < x_max) { 
+		grid.cols[col_idx].x_max = x_max; 
+	}
+	if (grid.cols_new[col_idx].x_min > x_min) { 
+		grid.cols_new[col_idx].x_min = x_min; 
+	}
+	if (grid.cols_new[col_idx].x_max < x_max) { 
+		grid.cols_new[col_idx].x_max = x_max; 
+	}
 }
 
 void invader_draw(invader *inv, object_state state) {
@@ -698,7 +706,9 @@ void player_move_left() {
 
 void player_score_update(uint16_t points) {
 	score += points;
-	if (score > 9999) { score = 9999; }
+	if (score > 9999) { 
+		score = 9999; 
+	}
 	render_score();
 	if (score > hi_score) {
 		hi_score = score;
@@ -751,6 +761,10 @@ void mothership_explode_draw() {
 
 void mothership_explode_clear() {
 	gdp_fill_rect(GDP_TOOL_ERASER, mothership.x, 37, 21 << 1, 8);
+}
+
+void mothership_score_clear() {
+	gdp_fill_rect(GDP_TOOL_ERASER, mothership.score_x, 37, 21 << 1, 8);
 }
 
 void mothership_score_draw() {
@@ -868,7 +882,9 @@ void shield_make_damage(shield *shield, uint16_t x, uint8_t y, uint8_t *bits) { 
 
 bool shield_check_hit_pixel(shield *shield, uint8_t x_local, int8_t y_local) { // local coords
 	// WARNME: we assume that x_local is within bounds
-	if (y_local < 0 || y_local > 15) { return false; }
+	if (y_local < 0 || y_local > 15) { 
+		return false; 
+	}
 	uint8_t byte = shield->bits[y_local][x_local >> 3];
 	return ((byte << (x_local & 7)) & 128) != 0;
 }
@@ -903,7 +919,9 @@ user_action render_plain_text(uint8_t *text, int delay) {
     user_action action;
     while (text[i] != 0) {
     	if (delay > 0) {
-	   		if (action = game_intro_keyboard_handler(delay)) { return action; }
+	   		if (action = game_intro_keyboard_handler(delay)) { 
+	   			return action; 
+	   		}
 	   	} else if (delay < 0) {
 	   		msleep(-delay);
 	   	}
@@ -937,7 +955,9 @@ user_action render_text_at(uint16_t x, uint8_t y, uint8_t *text, int delay) {
 		if (*p_e == '^') {
 			// write text from p_s to p_e
 			*p_e = 0;
-			if (action = render_plain_text(p_s, delay)) { return action; }
+			if (action = render_plain_text(p_s, delay)) { 
+				return action; 
+			}
 			x_e += (strlen(p_s) * 8) << 1;
 			p_s = p_e + 1;
 			// draw caron
@@ -1130,6 +1150,7 @@ void game_init() {
 	// init mothership
 	mothership.x = 0;
 	mothership.wait_frame = 0;
+	mothership.score_frame = 0;
 
 	mothership_timer_reset();
 
@@ -1138,12 +1159,12 @@ void game_init() {
 		shields[i].x = (177 + i * 45) << 1;
 		for (uint8_t j = 0; j < 8; j++) {
 			for (uint8_t k = 0; k < 3; k++) {
-				shields[i].bits[j][k] = level >= 5 ? 0 : shield_bits[j][k];
+				shields[i].bits[j][k] = level >= 5 ? 0 : bits_shield[j][k];
 			}
 		}
 		for (uint8_t j = 8; j < 16; j++) {
 			for (uint8_t k = 0; k < 3; k++) {
-				shields[i].bits[j][k] = level >= 9 ? 0 : shield_bits[j][k];
+				shields[i].bits[j][k] = level >= 9 ? 0 : bits_shield[j][k];
 			}
 		}
 	}
@@ -1167,7 +1188,9 @@ void game_over() {
 	msleep(1000);
 	timer_reset(0);
 	do {
-		if (kbhit()) { break; }
+		if (kbhit()) { 
+			break; 
+		}
 	} while (timer_diff() < 500);
 }
 
@@ -1215,12 +1238,16 @@ game_state game() {
 				case 'a':
 				case 'A':
 					// left / stop
-					player.state = player.state == STATE_MOVE_LEFT ? STATE_HOLD : STATE_MOVE_LEFT;
+					player.state = player.state == STATE_MOVE_LEFT 
+						? STATE_HOLD 
+						: STATE_MOVE_LEFT;
 					break;
 				case 'd':
 				case 'D':
 					// right / stop
-					player.state = player.state == STATE_MOVE_RIGHT ? STATE_HOLD : STATE_MOVE_RIGHT;
+					player.state = player.state == STATE_MOVE_RIGHT 
+						? STATE_HOLD 
+						: STATE_MOVE_RIGHT;
 					break;
 				case ' ':
 					// fire
@@ -1228,7 +1255,9 @@ game_state game() {
 						missle.x = player.x + (6 << 1);
 						missle.y = 220 + cfg_missle_speed;
 						mothership_score_idx++;
-						if (mothership_score_idx > 23) { mothership_score_idx = 9; }
+						if (mothership_score_idx > 23) { 
+							mothership_score_idx = 9; 
+						}
 					}
 					break;
 				case 'b':
@@ -1307,15 +1336,15 @@ game_state game() {
 			bullet_idx = (bullet_idx + 1) % MAX_BULLETS; // next bullet
 			// update player missle
 			if (missle.explode_frame > 0) {
-				if (missle.explode_frame == cfg_mothership_score_frames && missle.hit_mothership) {
-					mothership_explode_clear();
-					mothership_score_draw();
-					player_score_update(mothership_score[mothership_score_idx]);
-				} else if (missle.explode_frame == 1) {
+				if (missle.explode_frame == 1) {
 					if (missle.hit_mothership) {
 						mothership_explode_clear();
+						mothership_score_draw();
+						player_score_update(mothership_score[mothership_score_idx]);
 						missle.hit_mothership = false;
+						mothership.score_x = mothership.x;
 						mothership.x = 0;
+						mothership.score_frame = cfg_mothership_score_frames;
 					} else if (missle.hit_invader) {
 						invader_explode_clear(missle.hit_invader);
 						missle.hit_invader = NULL;
@@ -1362,6 +1391,12 @@ game_state game() {
 					break;
 			}
 			// update mothership
+			if (mothership.score_frame > 0) {
+				if (mothership.score_frame == 1) {
+					mothership_score_clear();
+				}
+				mothership.score_frame--;
+			}
 			if (!missle.hit_mothership) {
 				if (mothership.x == 0) {
 					if (timer_diff_ex(mothership.spawn_timer, 0) >= mothership.spawn_delay) {
@@ -1422,7 +1457,9 @@ int main() {
 		render_level();
 		render_hi_score();
 		render_credits();
-		if (game_intro() == ACTION_EXIT) { break; }
+		if (game_intro() == ACTION_EXIT) { 
+			break; 
+		}
 		credits--;
 		render_credits();
 		while (true) {
@@ -1432,7 +1469,9 @@ int main() {
 				break;
 			} else if (state == GAME_STATE_LEVEL_CLEARED) {
 				level++;
-				if (level == 10) { level = 9; }
+				if (level == 10) { 
+					level = 9; 
+				}
 				render_level();
 			} else { // state == GAME_STATE_GAME_OVER
 				if (credits == 0) {

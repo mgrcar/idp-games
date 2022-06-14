@@ -55,6 +55,8 @@ typedef struct {
 	object_state state;
 	uint16_t spawn_delay;
 	uint16_t spawn_timer;
+	uint8_t score_frame;
+	uint16_t score_x;
 } mothership;
 
 typedef struct {
@@ -134,6 +136,7 @@ void mothership_clear();
 bool mothership_check_hit(uint16_t x, uint8_t y_top, uint8_t y_bottom);
 void mothership_explode_draw();
 void mothership_explode_clear();
+void mothership_score_clear();
 void mothership_score_draw();
 void mothership_timer_reset();
 
