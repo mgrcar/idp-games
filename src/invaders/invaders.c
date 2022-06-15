@@ -16,6 +16,7 @@ bullet bullets[MAX_BULLETS];
 player player;
 mothership mothership;
 grid grid;
+uint8_t col_bullet_y[11];
 missle missle;
 shield shields[4];
 
@@ -474,6 +475,7 @@ const uint16_t cfg_mothership_spawn_delay_max = 3500;  // x >= cfg_mothership_sp
 const uint16_t cfg_invader_fire_delay_min = 50;        // x >= 0
 const uint16_t cfg_invader_fire_delay_max = 200;       // x >= cfg_invader_fire_delay_min
 const uint8_t cfg_player_speed = 1 << 1;               // 1 << 1 =< x <= 4 << 1 // NOTE: With 3 bullets, cfg_mothership_step and cfg_player_speed should be 3. Not sure if this works though.
+const uint8_t cfg_bullet_gap = 24;                     // x >= 0
 
 uint8_t cfg_invader_row_offset = 0;                    // x >= 0
 
@@ -650,9 +652,12 @@ int invader_select_shooter() {
 	uint8_t shooters[11];
 	for (uint8_t j = 44; j < 55; j++) {
 		for (int k = j; k >= 0; k -= 11) {
-			if (!invaders[k].destroyed) {
-				// invader k is ready to fire
-				shooters[count++] = k;
+			invader *inv = &invaders[k];
+			if (!inv->destroyed) {
+				if ((inv->y + 8 + cfg_bullet_gap) <= col_bullet_y[k % 11]) {
+					// invader k is ready to fire
+					shooters[count++] = k;
+				}
 				break;
 			}
 		}
@@ -676,6 +681,8 @@ void invader_fire() {
 				b->frame = 0;
 				b->active = true;
 				b->explode_frame = 0;
+				b->col = shooter_idx % 11;
+				col_bullet_y[b->col] = b->y;
 				bullet_draw(b);
 			}
 			break;
@@ -824,13 +831,18 @@ bool missle_handle_hit() {
 			uint8_t y;
 			if (y = shield_check_hit(&shields[i], missle.x, missle.y - 3, missle.y + cfg_missle_speed, /*from_bottom*/true)) {
 				missle.explode_frame = cfg_shield_hit_frames;
-				missle.y = y + 4; missle_explode_draw();
+				missle_explode_at(y + 4);
 				shield_make_damage(&shields[i], missle.x, y, bits_shield_damage_player);
 				return true;
 			}
 		}
 	}
 	return false;
+}
+
+void missle_explode_at(uint8_t y) {
+	missle.y = y; 
+	missle_explode_draw();
 }
 
 void bullet_draw(bullet *b) {
@@ -865,6 +877,12 @@ void bullet_clear_leftover(bullet *b) {
 	gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6 - cfg_bullet_speed, GDP_DELTA_SIGN_DY_POS);
 	gdp_set_xy(b->x + 1, b->y);
 	gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6 - cfg_bullet_speed, GDP_DELTA_SIGN_DY_POS);
+}
+
+void bullet_explode_at(bullet *b, uint8_t y) {
+	b->y = y;
+	col_bullet_y[b->col] = 255;
+	bullet_explode_draw(b);
 }
 
 void shield_draw(shield *shield, uint8_t start_row) {
@@ -1105,6 +1123,10 @@ void game_init() {
 	grid.col_non_empty_last = 10;
 	grid.col_non_empty_first = 0;
 
+	for (uint8_t i = 0; i < 11; i++) {
+		col_bullet_y[i] = 255;
+	}
+
 	// init invaders
 	uint8_t i = 0;
 	uint8_t j = cfg_invader_row_offset << 3;
@@ -1292,12 +1314,16 @@ game_state game() {
 				}
 				b->explode_frame--;
 			} else if (b->active) { 
-				b->y += cfg_bullet_speed;
+				if (b->y == col_bullet_y[b->col]) {
+					col_bullet_y[b->col] = (b->y = b->y + cfg_bullet_speed);
+				} else {
+					b->y += cfg_bullet_speed;
+				}
 				bullet_clear_trail(b);
 				b->frame = (b->frame + 1) & 3;
 				if (b->y >= 230) {
 					bullet_clear_leftover(b); // erase the leftover after erasing the trail
-					b->y = 230; bullet_explode_draw(b);
+					bullet_explode_at(b, 230);
 					b->explode_frame = cfg_bullet_explode_frames;
 				} else if (player_check_hit(b->x, b->y - cfg_bullet_speed, b->y + 6)
 						|| player_check_hit(b->x - 2, b->y - cfg_bullet_speed, b->y + 6)
@@ -1321,7 +1347,7 @@ game_state game() {
 									|| (y = shield_check_hit(&shields[i], b->x - 2, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))
 									|| (y = shield_check_hit(&shields[i], b->x + 2, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))) {
 								bullet_clear_leftover(b);
-								b->y = y - 6; bullet_explode_draw(b);
+								bullet_explode_at(b, y - 6);
 								b->explode_frame = cfg_bullet_shield_hit_frames;
 								shield_make_damage(&shields[i], b->x, b->y + 5, bits_shield_damage_bullet);
 								break;
@@ -1363,7 +1389,7 @@ game_state game() {
 				}
 				missle.y -= cfg_missle_speed;
 				if (missle.y <= 37) {
-					missle.y = 37; missle_explode_draw();
+					missle_explode_at(37);
 					missle.explode_frame = cfg_missle_explode_frames;
 				} else {
 					if (!missle_handle_hit()) {

@@ -84,6 +84,7 @@ typedef struct {
 	uint8_t frame;
 	uint16_t x;
 	uint8_t y;
+	uint8_t col;
 	uint8_t explode_frame;
 } bullet;
 
@@ -145,6 +146,7 @@ void mothership_timer_reset();
 void missle_explode_draw();
 void missle_explode_clear();
 bool missle_handle_hit();
+void missle_explode_at(uint8_t y);
 
 // bullet
 
@@ -153,6 +155,7 @@ void bullet_explode_draw(bullet *b);
 void bullet_explode_clear(bullet *b);
 void bullet_clear_trail(bullet *b);
 void bullet_clear_leftover(bullet *b);
+void bullet_explode_at(bullet *b, uint8_t y);
 
 // shield
 
