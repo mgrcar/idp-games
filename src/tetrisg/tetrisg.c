@@ -68,6 +68,7 @@ key key_get() {
 		return KEY_SHOW_NEXT;
 	case 'x':
 	case 'X':
+	case 3:
 		return KEY_EXIT;
 	default:
 		return KEY_OTHER;
@@ -717,6 +718,8 @@ bool game_play() {
 				game_state = STATE_PAUSE;
 			}
 			break;
+		case KEY_EXIT:
+			return false;
 		case KEY_SHOW_NEXT:
 			show_next = !show_next;
 			if (show_next) { render_next_block(); }
