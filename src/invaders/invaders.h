@@ -116,7 +116,7 @@ bool invader_check_hit(invader *inv, uint16_t x, uint8_t y_top, uint8_t y_bottom
 void invader_explode_draw(invader *inv);
 void invader_explode_clear(invader *inv);
 int invader_select_shooter();
-void invader_fire();
+bullet *invader_fire();
 void invader_fire_timer_reset();
 
 // player
@@ -156,6 +156,7 @@ void bullet_explode_clear(bullet *b);
 void bullet_clear_trail(bullet *b);
 void bullet_clear_leftover(bullet *b);
 void bullet_explode_at(bullet *b, uint8_t y);
+bool bullet_collide_and_draw(bullet *b, bool clear);
 
 // shield
 

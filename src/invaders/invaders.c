@@ -475,7 +475,7 @@ const uint16_t cfg_mothership_spawn_delay_max = 3500;  // x >= cfg_mothership_sp
 const uint16_t cfg_invader_fire_delay_min = 50;        // x >= 0
 const uint16_t cfg_invader_fire_delay_max = 200;       // x >= cfg_invader_fire_delay_min
 const uint8_t cfg_player_speed = 1 << 1;               // 1 << 1 =< x <= 4 << 1 // NOTE: With 3 bullets, cfg_mothership_step and cfg_player_speed should be 3. Not sure if this works though.
-const uint8_t cfg_bullet_gap = 24;                     // x >= 0
+const uint8_t cfg_col_bullet_min_gap = 24;             // x >= 0
 
 uint8_t cfg_invader_row_offset = 0;                    // x >= 0
 
@@ -654,7 +654,7 @@ int invader_select_shooter() {
 		for (int k = j; k >= 0; k -= 11) {
 			invader *inv = &invaders[k];
 			if (!inv->destroyed) {
-				if ((inv->y + 8 + cfg_bullet_gap) <= col_bullet_y[k % 11]) {
+				if ((inv->y + 8 + cfg_col_bullet_min_gap) <= col_bullet_y[k % 11]) {
 					// invader k is ready to fire
 					shooters[count++] = k;
 				}
@@ -668,7 +668,7 @@ int invader_select_shooter() {
 		: -1;
 }
 
-void invader_fire() {
+bullet *invader_fire() {
 	for (uint8_t i = 0; i < MAX_BULLETS; i++) {
 		bullet *b = &bullets[i];
 		if (!b->active) {
@@ -683,11 +683,11 @@ void invader_fire() {
 				b->explode_frame = 0;
 				b->col = shooter_idx % 11;
 				col_bullet_y[b->col] = b->y;
-				bullet_draw(b);
+				return b;
 			}
-			break;
 		}
 	}
+	return NULL;
 }
 
 void invader_fire_timer_reset() {
@@ -885,6 +885,57 @@ void bullet_explode_at(bullet *b, uint8_t y) {
 	bullet_explode_draw(b);
 }
 
+bool bullet_collide_and_draw(bullet *b, bool clear) {
+	if (clear) {
+		bullet_clear_trail(b);
+	}
+	b->frame = (b->frame + 1) & 3;
+	if (b->y >= 230) {
+		if (clear) { 
+			bullet_clear_leftover(b); // erase the leftover after erasing the trail
+		}
+		bullet_explode_at(b, 230);
+		b->explode_frame = cfg_bullet_explode_frames;
+	} else if (player_check_hit(b->x, b->y - cfg_bullet_speed, b->y + 6)
+			|| player_check_hit(b->x - 2, b->y - cfg_bullet_speed, b->y + 6)
+			|| player_check_hit(b->x + 2, b->y - cfg_bullet_speed, b->y + 6)) {
+		if (clear) { 
+			bullet_clear_leftover(b);
+		}
+		player_explode_animate();
+		b->active = false;
+		lives--;
+		render_lives();
+		if (lives == 0) {
+			game_over();
+			return false;
+		}
+		player_draw(STATE_MOVE_RIGHT);
+	} else {
+		// check if shield was hit
+		if (true) { // TODO: check bullet y
+			for (uint8_t i = 0; i < 4; i++) {
+				uint8_t y;
+				if ((y = shield_check_hit(&shields[i], b->x, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))
+						|| (y = shield_check_hit(&shields[i], b->x - 2, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))
+						|| (y = shield_check_hit(&shields[i], b->x + 2, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))) {
+					if (clear) { 
+						bullet_clear_leftover(b);
+					}
+					bullet_explode_at(b, y - 6);
+					b->explode_frame = cfg_bullet_shield_hit_frames;
+					shield_make_damage(&shields[i], b->x, b->y + 5, bits_shield_damage_bullet);
+					break;
+				}
+			}
+		}
+		if (b->explode_frame == 0) { // neither shield nor player are hit
+			bullet_draw(b);
+		}
+	}
+	return true;
+}
+
 void shield_draw(shield *shield, uint8_t start_row) {
 	gdp_draw_sprite(&gfx_shield[start_row], 15 - start_row, shield->x, 197 + start_row);
 }
@@ -1049,6 +1100,7 @@ user_action game_intro_keyboard_handler(uint16_t timeout_ms) {
 			switch (key) {
 				case 'x':
 				case 'X':
+				case 3:
 					return ACTION_EXIT;
 				default:
 					return ACTION_CONTINUE;
@@ -1081,6 +1133,7 @@ user_action game_intro() {
 			switch (key) {
 				case 'x':
 				case 'X':
+				case 3:
 					return ACTION_EXIT;
 				case 'w':
 				case 'W':
@@ -1288,6 +1341,7 @@ game_state game() {
 					break;
 				case 'x':
 				case 'X':
+				case 3:
 					return GAME_STATE_EXIT;
 				case 'g':
 				case 'G':
@@ -1295,68 +1349,37 @@ game_state game() {
 				case 'n':
 				case 'N':
 					return GAME_STATE_LEVEL_CLEARED;
-				default:
+				default: 
 					// stop
 					player.state = STATE_HOLD;
 					break;
 				}
 			}
 			// update enemy bullet
+			bullet *b;
 			if (timer_diff_ex(invader_fire_timer, 0) >= invader_fire_delay) {
-				invader_fire();
+				if (b = invader_fire()) {
+					if (!bullet_collide_and_draw(b, /*clear*/false)) { 
+						return GAME_STATE_GAME_OVER; 
+					}
+				}
 				invader_fire_timer_reset();
 			}
-			bullet *b = &bullets[bullet_idx];
+			b = &bullets[bullet_idx];
 			if (b->explode_frame > 0) {
 				if (b->explode_frame == 1) {
 					bullet_explode_clear(b);
 					b->active = false;
 				}
 				b->explode_frame--;
-			} else if (b->active) { 
+			} else if (b->active) {
 				if (b->y == col_bullet_y[b->col]) {
 					col_bullet_y[b->col] = (b->y = b->y + cfg_bullet_speed);
 				} else {
 					b->y += cfg_bullet_speed;
 				}
-				bullet_clear_trail(b);
-				b->frame = (b->frame + 1) & 3;
-				if (b->y >= 230) {
-					bullet_clear_leftover(b); // erase the leftover after erasing the trail
-					bullet_explode_at(b, 230);
-					b->explode_frame = cfg_bullet_explode_frames;
-				} else if (player_check_hit(b->x, b->y - cfg_bullet_speed, b->y + 6)
-						|| player_check_hit(b->x - 2, b->y - cfg_bullet_speed, b->y + 6)
-						|| player_check_hit(b->x + 2, b->y - cfg_bullet_speed, b->y + 6)) {
-					bullet_clear_leftover(b);
-					player_explode_animate();
-					b->active = false;
-					lives--;
-					render_lives();
-					if (lives == 0) {
-						game_over();
-						return GAME_STATE_GAME_OVER;
-					}
-					player_draw(STATE_MOVE_RIGHT);
-				} else {
-					// check if shield was hit
-					if (true) { // TODO: check bullet y
-						for (uint8_t i = 0; i < 4; i++) {
-							uint8_t y;
-							if ((y = shield_check_hit(&shields[i], b->x, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))
-									|| (y = shield_check_hit(&shields[i], b->x - 2, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))
-									|| (y = shield_check_hit(&shields[i], b->x + 2, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))) {
-								bullet_clear_leftover(b);
-								bullet_explode_at(b, y - 6);
-								b->explode_frame = cfg_bullet_shield_hit_frames;
-								shield_make_damage(&shields[i], b->x, b->y + 5, bits_shield_damage_bullet);
-								break;
-							}
-						}
-					}
-					if (b->explode_frame == 0) { // neither shield nor player are hit
-						bullet_draw(b);
-					}
+				if (!bullet_collide_and_draw(b, /*clear*/true)) { 
+					return GAME_STATE_GAME_OVER; 
 				}
 			}
 			bullet_idx = (bullet_idx + 1) % MAX_BULLETS; // next bullet
