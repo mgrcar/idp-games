@@ -49,6 +49,7 @@ __sfr __at 0x25 GDP_DX;     // W: delta x
 __sfr __at 0x27 GDP_DY;     // W: delta y
 __sfr __at 0x21 GDP_CTRL_1; // RW: control register 1
 __sfr __at 0x22 GDP_CTRL_2; // RW: control register 2
+__sfr __at 0x23 GDP_CHAR_SIZE;
 __sfr __at 0x36 GDP_SCROLL; // W: graphic scroll
 __sfr __at 0x30 GFX_COMMON; // RW: graphic common control 
 

@@ -16,6 +16,7 @@ void gdp_init() {
     GFX_COMMON = 0x03; // format: 00, write mode: 0, pages: 11
     GDP_CTRL_1 = GDP_CTRL_1_TOOL_DOWN | GDP_TOOL_PEN;
     GDP_CTRL_2 = GDP_STYLE_NORMAL;
+    GDP_CHAR_SIZE = 0x21;
     GDP_CMD = GDP_CMD_CLS; 
     gdp_wait_ready();
     GFX_COMMON = 0x00; // format: 00, write mode: 0, pages: 00
