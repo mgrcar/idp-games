@@ -680,6 +680,7 @@ bullet *invader_fire() {
 				b->type = sys_rand() % 3;
 				b->frame = 0;
 				b->active = true;
+				b->drawn = false;
 				b->explode_frame = 0;
 				b->col = shooter_idx % 11;
 				col_bullet_y[b->col] = b->y;
@@ -793,7 +794,54 @@ void missle_explode_clear() {
 	gdp_erase_sprite(gfx_missle_explode, 7, missle.x - 6, missle.y - 7);
 }
 
-bool missle_handle_hit() {
+bool bullet_missle_collide(bullet *b) {
+	// NOTE: the first condition fails if missle is not in the air (missle.x is 0)
+	if (missle.x >= b->x - 3 && missle.x <= b->x + 3 
+		&& missle.y >= b->y - cfg_bullet_speed && missle.y - 3 <= b->y + 6) {
+		// bullet explodes
+		bullet_clear_leftover(b);
+		bullet_explode_at(b, b->y);
+		b->explode_frame = cfg_bullet_explode_frames;
+		// missle explodes
+		// missle_clear()
+		gdp_set_xy(missle.x, missle.y);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
+		gdp_set_xy(missle.x + 1, missle.y);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
+		// end of missle_clear()
+		missle_explode_at(missle.y);
+		missle.explode_frame = cfg_missle_explode_frames;
+		return true;
+	}
+	return false;
+}
+
+/*bool missle_bullet_collide() {
+	for (uint8_t i = 0; i < MAX_BULLETS; i++) {
+		bullet *b = &bullets[i];
+		if (b->active && bullet_missle_collide(b)) {
+			return true;
+		}
+	}
+	return false;
+}*/
+
+void missle_collide_and_draw() {
+	if (missle.y < 220) {
+		// clear
+		gdp_set_xy(missle.x, missle.y + cfg_missle_speed);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
+		gdp_set_xy(missle.x + 1, missle.y + cfg_missle_speed);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
+	}
+	/*if (missle_bullet_collide()) {
+		return;
+	}*/
+	if (missle.y <= 37) {
+		missle_explode_at(37);
+		missle.explode_frame = cfg_missle_explode_frames;
+		return;
+	} 
 	for (uint8_t col = 0; col < 11; col++) {
 		if (missle.x >= grid.cols[col].x_min && missle.x <= grid.cols[col].x_max) {
 			// we might have hit an invader in column 'col'
@@ -815,7 +863,7 @@ bool missle_handle_hit() {
 						inv->next->prev = inv->prev;
 					}
 					player_score_update(invader_score_by_type[inv->type]);
-					return true;
+					return;
 				}
 			}
 		}
@@ -824,7 +872,7 @@ bool missle_handle_hit() {
 		missle.hit_mothership = true;
 		missle.explode_frame = cfg_mothership_explode_frames + cfg_mothership_score_frames;
 		mothership_explode_draw();
-		return true;
+		return;
 	} else {
 		// TODO: check missle y first?
 		for (uint8_t i = 0; i < 4; i++) {
@@ -833,11 +881,15 @@ bool missle_handle_hit() {
 				missle.explode_frame = cfg_shield_hit_frames;
 				missle_explode_at(y + 4);
 				shield_make_damage(&shields[i], missle.x, y, bits_shield_damage_player);
-				return true;
+				return;
 			}
 		}
 	}
-	return false;
+	// draw
+	gdp_set_xy(missle.x, missle.y);
+	gdp_line_delta(GDP_TOOL_PEN, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
+	gdp_set_xy(missle.x + 1, missle.y);
+	gdp_line_delta(GDP_TOOL_PEN, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
 }
 
 void missle_explode_at(uint8_t y) {
@@ -847,6 +899,7 @@ void missle_explode_at(uint8_t y) {
 
 void bullet_draw(bullet *b) {
 	gdp_draw_sprite(gfx_bullet[b->type][b->frame], 6, b->x - 2, b->y);
+	b->drawn = true;
 }
 
 void bullet_explode_draw(bullet *b) {
@@ -858,25 +911,29 @@ void bullet_explode_clear(bullet *b) {
 }
 
 void bullet_clear_trail(bullet *b) {
-	gdp_set_xy(b->x - 2, b->y - cfg_bullet_speed);
-	gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
-	gdp_set_xy(b->x - 1, b->y - cfg_bullet_speed);
-	gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
-	gdp_set_xy(b->x, b->y - cfg_bullet_speed);
-	gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/cfg_bullet_speed - 1, GDP_DELTA_SIGN_DY_POS);
-	gdp_set_xy(b->x + 1, b->y - cfg_bullet_speed);
-	gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/cfg_bullet_speed - 1, GDP_DELTA_SIGN_DY_POS);
-	gdp_set_xy(b->x + 2, b->y - cfg_bullet_speed);
-	gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
-	gdp_set_xy(b->x + 3, b->y - cfg_bullet_speed);
-	gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
+	if (b->drawn) {
+		gdp_set_xy(b->x - 2, b->y - cfg_bullet_speed);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
+		gdp_set_xy(b->x - 1, b->y - cfg_bullet_speed);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
+		gdp_set_xy(b->x, b->y - cfg_bullet_speed);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/cfg_bullet_speed - 1, GDP_DELTA_SIGN_DY_POS);
+		gdp_set_xy(b->x + 1, b->y - cfg_bullet_speed);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/cfg_bullet_speed - 1, GDP_DELTA_SIGN_DY_POS);
+		gdp_set_xy(b->x + 2, b->y - cfg_bullet_speed);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
+		gdp_set_xy(b->x + 3, b->y - cfg_bullet_speed);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
+	}
 }
 
 void bullet_clear_leftover(bullet *b) {
-	gdp_set_xy(b->x, b->y);
-	gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6 - cfg_bullet_speed, GDP_DELTA_SIGN_DY_POS);
-	gdp_set_xy(b->x + 1, b->y);
-	gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6 - cfg_bullet_speed, GDP_DELTA_SIGN_DY_POS);
+	if (b->drawn) {
+		gdp_set_xy(b->x, b->y);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6 - cfg_bullet_speed, GDP_DELTA_SIGN_DY_POS);
+		gdp_set_xy(b->x + 1, b->y);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6 - cfg_bullet_speed, GDP_DELTA_SIGN_DY_POS);
+	}
 }
 
 void bullet_explode_at(bullet *b, uint8_t y) {
@@ -885,23 +942,20 @@ void bullet_explode_at(bullet *b, uint8_t y) {
 	bullet_explode_draw(b);
 }
 
-bool bullet_collide_and_draw(bullet *b, bool clear) {
-	if (clear) {
-		bullet_clear_trail(b);
+bool bullet_collide_and_draw(bullet *b) {
+	bullet_clear_trail(b);
+	if (bullet_missle_collide(b)) {
+		return true;
 	}
 	b->frame = (b->frame + 1) & 3;
 	if (b->y >= 230) {
-		if (clear) { 
-			bullet_clear_leftover(b); // erase the leftover after erasing the trail
-		}
+		bullet_clear_leftover(b); 
 		bullet_explode_at(b, 230);
 		b->explode_frame = cfg_bullet_explode_frames;
 	} else if (player_check_hit(b->x, b->y - cfg_bullet_speed, b->y + 6)
 			|| player_check_hit(b->x - 2, b->y - cfg_bullet_speed, b->y + 6)
 			|| player_check_hit(b->x + 2, b->y - cfg_bullet_speed, b->y + 6)) {
-		if (clear) { 
-			bullet_clear_leftover(b);
-		}
+		bullet_clear_leftover(b);
 		player_explode_animate();
 		b->active = false;
 		lives--;
@@ -919,9 +973,7 @@ bool bullet_collide_and_draw(bullet *b, bool clear) {
 				if ((y = shield_check_hit(&shields[i], b->x, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))
 						|| (y = shield_check_hit(&shields[i], b->x - 2, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))
 						|| (y = shield_check_hit(&shields[i], b->x + 2, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))) {
-					if (clear) { 
-						bullet_clear_leftover(b);
-					}
+					bullet_clear_leftover(b);
 					bullet_explode_at(b, y - 6);
 					b->explode_frame = cfg_bullet_shield_hit_frames;
 					shield_make_damage(&shields[i], b->x, b->y + 5, bits_shield_damage_bullet);
@@ -1359,7 +1411,7 @@ game_state game() {
 			bullet *b;
 			if (timer_diff_ex(invader_fire_timer, 0) >= invader_fire_delay) {
 				if (b = invader_fire()) {
-					if (!bullet_collide_and_draw(b, /*clear*/false)) { 
+					if (!bullet_collide_and_draw(b)) { 
 						return GAME_STATE_GAME_OVER; 
 					}
 				}
@@ -1378,7 +1430,7 @@ game_state game() {
 				} else {
 					b->y += cfg_bullet_speed;
 				}
-				if (!bullet_collide_and_draw(b, /*clear*/true)) { 
+				if (!bullet_collide_and_draw(b)) { 
 					return GAME_STATE_GAME_OVER; 
 				}
 			}
@@ -1404,24 +1456,8 @@ game_state game() {
 				}
 				missle.explode_frame--;
 			} else if (missle.x > 0) {
-				if (missle.y < 220 + cfg_missle_speed) {
-					gdp_set_xy(missle.x, missle.y);
-					gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
-					gdp_set_xy(missle.x + 1, missle.y);
-					gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
-				}
 				missle.y -= cfg_missle_speed;
-				if (missle.y <= 37) {
-					missle_explode_at(37);
-					missle.explode_frame = cfg_missle_explode_frames;
-				} else {
-					if (!missle_handle_hit()) {
-						gdp_set_xy(missle.x, missle.y);
-						gdp_line_delta(GDP_TOOL_PEN, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
-						gdp_set_xy(missle.x + 1, missle.y);
-						gdp_line_delta(GDP_TOOL_PEN, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
-					}
-				}
+				missle_collide_and_draw();
 			}
 			// update player
 			switch (player.state) {
