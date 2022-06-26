@@ -479,7 +479,7 @@ const uint8_t cfg_col_bullet_min_gap = 24;             // x >= 0
 
 uint8_t cfg_invader_row_offset = 0;                    // x >= 0
 
-uint8_t *to_binary_str(uint8_t val) { // WARNME: for debugging only
+uint8_t *debug_to_binary_str(uint8_t val) { // WARNME: for debugging only
 	for (uint8_t i = 0; i < 8; i++) {
 		buffer[i] = (val & 128) != 0 ? '1' : '0';
 		val <<= 1;
@@ -488,10 +488,10 @@ uint8_t *to_binary_str(uint8_t val) { // WARNME: for debugging only
 	return buffer;
 }
 
-void shield_print_bits(shield *shield) { // WARNME: for debugging only
+void debug_print_bits(shield *shield) { // WARNME: for debugging only
 	for (uint8_t y = 0; y < 16; y++) {
 		for (uint8_t i = 0; i < 3; i++) {
-			uint8_t *str = to_binary_str(shield->bits[y][i]);
+			uint8_t *str = debug_to_binary_str(shield->bits[y][i]);
 			avdc_write_str_at_cursor_pos(y, i * 8 + i, str, NULL);
 		}
 	}
@@ -635,8 +635,8 @@ bool invader_move_down_right(invader *inv) {
 
 bool invader_check_hit(invader *inv, uint16_t x, uint8_t y_top, uint8_t y_bottom) {
 	uint16_t inv_x = inv->x + inv->dx;
-	return x >= inv_x && x <= inv_x + inv->width - 1
-		&& ((y_top <= inv->y && y_bottom >= inv->y) || (y_top >= inv->y && y_top <= inv->y + 7));
+	return x + 1 >= inv_x && x <= inv_x + inv->width - 1
+		&& y_bottom >= inv->y && y_top <= inv->y + 7;
 }
 
 void invader_explode_draw(invader *inv) {
@@ -736,8 +736,8 @@ void player_explode_animate() {
 }
 
 bool player_check_hit(uint16_t x, uint8_t y_top, uint8_t y_bottom) {
-	return x >= player.x && x <= player.x + (13 << 1) - 1
-		&& ((y_top <= 221 && y_bottom >= 221) || (y_top >= 221 && y_top <= 221 + 8));
+	return x + 1 >= player.x && x <= player.x + (13 << 1) - 1
+		&& y_bottom >= 221 && y_top <= 221 + 8;
 }
 
 void mothership_draw(object_state state) {
@@ -759,8 +759,8 @@ void mothership_clear() {
 }
 
 bool mothership_check_hit(uint16_t x, uint8_t y_top, uint8_t y_bottom) {
-	return x >= mothership.x && x <= mothership.x + (16 << 1) - 1
-		&& ((y_top <= 38 && y_bottom >= 38) || (y_top >= 38 && y_top <= 38 + 6));
+	return x + 1 >= mothership.x && x <= mothership.x + (16 << 1) - 1
+		&& y_bottom >= 38 && y_top <= 38 + 6;
 }
 
 void mothership_explode_draw() {
@@ -1012,8 +1012,8 @@ bool shield_check_hit_pixel(shield *shield, uint8_t x_local, int8_t y_local) { /
 
 uint8_t shield_check_hit(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bottom, bool from_bottom) { // returns world coords of hit (or 0)
 	// check bounding box
-	if (x >= shield->x && x < shield->x + (22 << 1)
-		&& ((y_top <= 197 && y_bottom >= 197) || (y_top >= 197 && y_top <= 197 + 16))) {
+	if (x + 1 >= shield->x && x < shield->x + (22 << 1)
+		&& y_bottom >= 197 && y_top <= 197 + 16) {
 		// check pixels
 		uint8_t x_local = (x - shield->x) >> 1;
 		if (from_bottom) {
@@ -1389,7 +1389,7 @@ game_state game() {
 					break;
 				case 'b':
 				case 'B':
-					shield_print_bits(&shields[0]);
+					debug_print_bits(&shields[0]);
 					break;
 				case 'x':
 				case 'X':
