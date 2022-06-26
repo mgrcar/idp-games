@@ -874,14 +874,17 @@ void missile_collide_and_draw() {
 		mothership_explode_draw();
 		return;
 	} else {
-		// TODO: check missile y first?
-		for (uint8_t i = 0; i < 4; i++) {
-			uint8_t y;
-			if (y = shield_check_hit(&shields[i], missile.x, missile.y - 3, missile.y + cfg_missile_speed, /*from_bottom*/true)) {
-				missile.explode_frame = cfg_shield_hit_frames;
-				missile_explode_at(y + 4);
-				shield_make_damage(&shields[i], missile.x, y, bits_shield_damage_player);
-				return;
+		uint8_t y_top = missile.y - 3;
+		uint8_t y_bottom = missile.y + cfg_missile_speed;
+		if (y_bottom >= 197 && y_top <= 197 + 16) {
+			for (uint8_t i = 0; i < 4; i++) {
+				uint8_t y;
+				if (y = shield_check_hit(&shields[i], missile.x, y_top, y_bottom, /*from_bottom*/true)) {
+					missile.explode_frame = cfg_shield_hit_frames;
+					missile_explode_at(y + 4);
+					shield_make_damage(&shields[i], missile.x, y, bits_shield_damage_player);
+					return;
+				}
 			}
 		}
 	}
@@ -967,12 +970,14 @@ bool bullet_collide_and_draw(bullet *b) {
 		player_draw(STATE_MOVE_RIGHT);
 	} else {
 		// check if shield was hit
-		if (true) { // TODO: check bullet y
+		uint8_t y_top = b->y - cfg_bullet_speed;
+		uint8_t y_bottom = b->y + 6;
+		if (y_bottom >= 197 && y_top <= 197 + 16) { 
 			for (uint8_t i = 0; i < 4; i++) {
 				uint8_t y;
-				if ((y = shield_check_hit(&shields[i], b->x, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))
-						|| (y = shield_check_hit(&shields[i], b->x - 2, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))
-						|| (y = shield_check_hit(&shields[i], b->x + 2, b->y - cfg_bullet_speed, b->y + 6, /*from_bottom*/false))) {
+				if ((y = shield_check_hit(&shields[i], b->x, y_top, y_bottom, /*from_bottom*/false))
+						|| (y = shield_check_hit(&shields[i], b->x - 2, y_top, y_bottom, /*from_bottom*/false))
+						|| (y = shield_check_hit(&shields[i], b->x + 2, y_top, y_bottom, /*from_bottom*/false))) {
 					bullet_clear_leftover(b);
 					bullet_explode_at(b, y - 6);
 					b->explode_frame = cfg_bullet_shield_hit_frames;
@@ -1013,7 +1018,7 @@ bool shield_check_hit_pixel(shield *shield, uint8_t x_local, int8_t y_local) { /
 uint8_t shield_check_hit(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bottom, bool from_bottom) { // returns world coords of hit (or 0)
 	// check bounding box
 	if (x + 1 >= shield->x && x < shield->x + (22 << 1)
-		&& y_bottom >= 197 && y_top <= 197 + 16) {
+		/*&& y_bottom >= 197 && y_top <= 197 + 16*/) { // WARNME: y condition checked by the caller
 		// check pixels
 		uint8_t x_local = (x - shield->x) >> 1;
 		if (from_bottom) {
