@@ -76,7 +76,7 @@ typedef struct {
 	// collision info
 	invader *hit_invader;
 	bool hit_mothership;
-} missle;
+} missile;
 
 typedef struct {
 	bool active;
@@ -142,12 +142,12 @@ void mothership_score_clear();
 void mothership_score_draw();
 void mothership_timer_reset();
 
-// missle
+// missile
 
-void missle_explode_draw();
-void missle_explode_clear();
-void missle_collide_and_draw();
-void missle_explode_at(uint8_t y);
+void missile_explode_draw();
+void missile_explode_clear();
+void missile_collide_and_draw();
+void missile_explode_at(uint8_t y);
 
 // bullet
 
