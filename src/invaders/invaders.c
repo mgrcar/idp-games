@@ -736,7 +736,7 @@ void player_explode_animate() {
 }
 
 bool player_check_hit(uint16_t x, uint8_t y_top, uint8_t y_bottom) {
-	return x + 1 >= player.x && x <= player.x + (13 << 1) - 1
+	return x + 3 >= player.x && x - 2 < player.x + (13 << 1)
 		&& y_bottom >= 221 && y_top <= 221 + 8;
 }
 
@@ -955,9 +955,7 @@ bool bullet_collide_and_draw(bullet *b) {
 		bullet_clear_leftover(b); 
 		bullet_explode_at(b, 230);
 		b->explode_frame = cfg_bullet_explode_frames;
-	} else if (player_check_hit(b->x, b->y - cfg_bullet_speed, b->y + 6)
-			|| player_check_hit(b->x - 2, b->y - cfg_bullet_speed, b->y + 6)
-			|| player_check_hit(b->x + 2, b->y - cfg_bullet_speed, b->y + 6)) {
+	} else if (player_check_hit(b->x, b->y - cfg_bullet_speed, b->y + 6)) {
 		bullet_clear_leftover(b);
 		player_explode_animate();
 		b->active = false;
