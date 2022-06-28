@@ -635,7 +635,7 @@ bool invader_move_down_right(invader *inv) {
 
 bool invader_check_hit(invader *inv, uint16_t x, uint8_t y_top, uint8_t y_bottom) {
 	uint16_t inv_x = inv->x + inv->dx;
-	return x + 1 >= inv_x && x <= inv_x + inv->width - 1
+	return x + 1 >= inv_x && x < inv_x + inv->width
 		&& y_bottom >= inv->y && y_top <= inv->y + 7;
 }
 
@@ -759,7 +759,7 @@ void mothership_clear() {
 }
 
 bool mothership_check_hit(uint16_t x, uint8_t y_top, uint8_t y_bottom) {
-	return x + 1 >= mothership.x && x <= mothership.x + (16 << 1) - 1
+	return x + 1 >= mothership.x && x < mothership.x + (16 << 1)
 		&& y_bottom >= 38 && y_top <= 38 + 6;
 }
 
@@ -794,37 +794,10 @@ void missile_explode_clear() {
 	gdp_erase_sprite(gfx_missile_explode, 7, missile.x - 6, missile.y - 7);
 }
 
-bool bullet_missile_collide(bullet *b) {
-	// NOTE: the first condition fails if missile is not in the air (missile.x is 0)
-	if (missile.x >= b->x - 3 && missile.x <= b->x + 3 
-		&& missile.y >= b->y - cfg_bullet_speed && missile.y - 3 <= b->y + 6) {
-		// bullet explodes
-		bullet_clear_leftover(b);
-		bullet_explode_at(b, b->y);
-		b->explode_frame = cfg_bullet_explode_frames;
-		// missile explodes
-		// missile_clear()
-		gdp_set_xy(missile.x, missile.y);
-		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
-		gdp_set_xy(missile.x + 1, missile.y);
-		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
-		// end of missile_clear()
-		missile_explode_at(missile.y);
-		missile.explode_frame = cfg_missile_explode_frames;
-		return true;
-	}
-	return false;
+bool bullet_missile_check_hit(bullet *b) {
+	return missile.x >= b->x - 3 && missile.x <= b->x + 3 
+		&& missile.y >= b->y - cfg_bullet_speed && missile.y - 3 <= b->y + 6;
 }
-
-/*bool missile_bullet_collide() {
-	for (uint8_t i = 0; i < MAX_BULLETS; i++) {
-		bullet *b = &bullets[i];
-		if (b->active && bullet_missile_collide(b)) {
-			return true;
-		}
-	}
-	return false;
-}*/
 
 void missile_collide_and_draw() {
 	if (missile.y < 220) {
@@ -834,9 +807,6 @@ void missile_collide_and_draw() {
 		gdp_set_xy(missile.x + 1, missile.y + cfg_missile_speed);
 		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
 	}
-	/*if (missile_bullet_collide()) {
-		return;
-	}*/
 	if (missile.y <= 37) {
 		missile_explode_at(37);
 		missile.explode_frame = cfg_missile_explode_frames;
@@ -947,11 +917,43 @@ void bullet_explode_at(bullet *b, uint8_t y) {
 
 bool bullet_collide_and_draw(bullet *b) {
 	bullet_clear_trail(b);
-	if (bullet_missile_collide(b)) {
-		return true;
-	}
 	b->frame = (b->frame + 1) & 3;
-	if (b->y >= 230) {
+	if (bullet_missile_check_hit(b)) {
+		// bullet explodes
+		bullet_clear_leftover(b);
+		bullet_explode_at(b, b->y + 9 < 221 ? b->y : 211); // NOTE: cannot touch the player
+		shield *shield;
+		// does it damage a shield?
+		if (b->y + 9 >= 197 && b->y + 2 <= 197 + 16) { 
+			for (uint8_t i = 0; i < 4; i++) {
+				shield = &shields[i];
+				if (b->x + 3 >= shield->x && b->x - 2 < shield->x + (22 << 1)) {
+					shield_make_damage(shield, b->x, b->y + 5, bits_shield_damage_bullet);
+					break;
+				}
+			}
+		}
+		b->explode_frame = cfg_bullet_explode_frames;
+		// missile explodes
+		// missile_clear
+		gdp_set_xy(missile.x, missile.y);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
+		gdp_set_xy(missile.x + 1, missile.y);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
+		// end of missile_clear
+		missile_explode_at(missile.y); // NOTE: cannot touch the player
+		// does it damage a shield?
+		if (missile.y >= 197 && missile.y - 7 <= 197 + 16) { 
+			for (uint8_t i = 0; i < 4; i++) {
+				shield = &shields[i];
+				if (missile.x + 1 >= shield->x && missile.x < shield->x + (22 << 1)) {
+					shield_make_damage(shield, missile.x, missile.y - 4, bits_shield_damage_player);
+					break;
+				}
+			}
+		}
+		missile.explode_frame = cfg_missile_explode_frames;
+	} else if (b->y >= 230) {
 		bullet_clear_leftover(b); 
 		bullet_explode_at(b, 230);
 		b->explode_frame = cfg_bullet_explode_frames;
