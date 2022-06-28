@@ -809,7 +809,8 @@ void missile_explode_clear() {
 }
 
 bool missile_check_hit(bullet *b) {
-	return missile.x >= b->x - 3 && missile.x <= b->x + 3 // NOTE: the first condition fails if missile is not fired (missile.x is 0)
+	return missile.explode_frame == 0 // missile is not exploding
+		&& missile.x >= b->x - 3 && missile.x <= b->x + 3 // NOTE: the first condition here fails if missile is not fired (missile.x is 0)
 		&& missile.y + cfg_missile_tail >= b->y - cfg_bullet_speed && missile.y - 3 <= b->y + 6;
 }
 
