@@ -461,21 +461,26 @@ uint8_t mothership_score_idx = 0;
 const uint8_t cfg_missile_explode_frames = 12;         // x >= 1
 const uint8_t cfg_bullet_explode_frames = 4;           // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
 const uint8_t cfg_invader_explode_frames = 12;         // x >= 1
-const uint8_t cfg_shield_hit_frames = 12;			   // x >= 1
-const uint8_t cfg_bullet_shield_hit_frames = 4;		   // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
+const uint8_t cfg_shield_hit_frames = 12;              // x >= 1
+const uint8_t cfg_bullet_shield_hit_frames = 4;        // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
 const uint8_t cfg_mothership_explode_frames = 24;      // x >= 1
 const uint8_t cfg_mothership_score_frames = 40;        // x >= 1
-const uint8_t cfg_missile_speed = 4;			       // x >= 4
+const uint8_t cfg_missile_speed = 4;                   // x >= 4
 const uint8_t cfg_bullet_speed = 4;                    // x >= 1
 const uint8_t cfg_invader_speed = 2 << 1;              // x = 2 << 1 // WARNME: do not change!
 const uint8_t cfg_mothership_wait_frames = 1;          // x >= 1
-const uint8_t cfg_mothership_step = 1 << 1;       	   // 1 << 1 =< x <= 4 << 1
+const uint8_t cfg_mothership_step = 1 << 1;            // 1 << 1 =< x <= 4 << 1
 const uint16_t cfg_mothership_spawn_delay_min = 1500;  // x >= 0
 const uint16_t cfg_mothership_spawn_delay_max = 3500;  // x >= cfg_mothership_spawn_delay_min_sec
 const uint16_t cfg_invader_fire_delay_min = 50;        // x >= 0
 const uint16_t cfg_invader_fire_delay_max = 200;       // x >= cfg_invader_fire_delay_min
-const uint8_t cfg_player_speed = 1 << 1;               // 1 << 1 =< x <= 4 << 1 // NOTE: With 3 bullets, cfg_mothership_step and cfg_player_speed should be 3. Not sure if this works though.
+const uint8_t cfg_player_speed = 1 << 1;               // 1 << 1 <= x <= 4 << 1 // NOTE: With 3 bullets, cfg_mothership_step and cfg_player_speed should be 3. Not sure if this works though.
 const uint8_t cfg_col_bullet_min_gap = 24;             // x >= 0
+
+const uint8_t cfg_bullet_explode_chance = 10;          // 0 <= x <= 10
+const uint8_t cfg_missile_explode_chance = 10;         // 0 <= x <= 10
+
+const uint8_t cfg_missile_tail = 2;                    // should be computed as MAX_BULLETS x cfg_missile_speed - 10 (or 0 if negative)
 
 uint8_t cfg_invader_row_offset = 0;                    // x >= 0
 
@@ -669,6 +674,11 @@ int invader_select_shooter() {
 }
 
 bullet *invader_fire() {
+	// DEBUG CODE
+	for (uint8_t i = 0; i < MAX_BULLETS; i++) {
+		if (bullets[i].active) { return false; }
+	}
+	// EO DEBUG CODE
 	for (uint8_t i = 0; i < MAX_BULLETS; i++) {
 		bullet *b = &bullets[i];
 		if (!b->active) {
@@ -684,6 +694,10 @@ bullet *invader_fire() {
 				b->explode_frame = 0;
 				b->col = shooter_idx % 11;
 				col_bullet_y[b->col] = b->y;
+				// DEBUGGING
+				//player.x = b->x - 10;
+				b->x = player.x + 12;
+				// *********
 				return b;
 			}
 		}
@@ -794,9 +808,9 @@ void missile_explode_clear() {
 	gdp_erase_sprite(gfx_missile_explode, 7, missile.x - 6, missile.y - 7);
 }
 
-bool bullet_missile_check_hit(bullet *b) {
-	return missile.x >= b->x - 3 && missile.x <= b->x + 3 
-		&& missile.y >= b->y - cfg_bullet_speed && missile.y - 3 <= b->y + 6;
+bool missile_check_hit(bullet *b) {
+	return missile.x >= b->x - 3 && missile.x <= b->x + 3 // NOTE: the first condition fails if missile is not fired (missile.x is 0)
+		&& missile.y + cfg_missile_tail >= b->y - cfg_bullet_speed && missile.y - 3 <= b->y + 6;
 }
 
 void missile_collide_and_draw() {
@@ -883,7 +897,7 @@ void bullet_explode_clear(bullet *b) {
 	gdp_erase_sprite(gfx_bullet_explode, 7, b->x - (3 << 1), b->y + 2);
 }
 
-void bullet_clear_trail(bullet *b) {
+void bullet_clear_tail(bullet *b) {
 	if (b->drawn) {
 		gdp_set_xy(b->x - 2, b->y - cfg_bullet_speed);
 		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
@@ -900,7 +914,7 @@ void bullet_clear_trail(bullet *b) {
 	}
 }
 
-void bullet_clear_leftover(bullet *b) {
+void bullet_clear_head(bullet *b) {
 	if (b->drawn) {
 		gdp_set_xy(b->x, b->y);
 		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6 - cfg_bullet_speed, GDP_DELTA_SIGN_DY_POS);
@@ -916,49 +930,14 @@ void bullet_explode_at(bullet *b, uint8_t y) {
 }
 
 bool bullet_collide_and_draw(bullet *b) {
-	bullet_clear_trail(b);
+	bullet_clear_tail(b);
 	b->frame = (b->frame + 1) & 3;
-	if (bullet_missile_check_hit(b)) {
-		// bullet explodes
-		bullet_clear_leftover(b);
-		bullet_explode_at(b, b->y + 9 < 221 ? b->y : 211); // NOTE: cannot touch the player
-		shield *shield;
-		// does it damage a shield?
-		if (b->y + 9 >= 197 && b->y + 2 <= 197 + 16) { 
-			for (uint8_t i = 0; i < 4; i++) {
-				shield = &shields[i];
-				if (b->x + 3 >= shield->x && b->x - 2 < shield->x + (22 << 1)) {
-					shield_make_damage(shield, b->x, b->y + 5, bits_shield_damage_bullet);
-					break;
-				}
-			}
-		}
-		b->explode_frame = cfg_bullet_explode_frames;
-		// missile explodes
-		// missile_clear
-		gdp_set_xy(missile.x, missile.y);
-		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
-		gdp_set_xy(missile.x + 1, missile.y);
-		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
-		// end of missile_clear
-		missile_explode_at(missile.y); // NOTE: cannot touch the player
-		// does it damage a shield?
-		if (missile.y >= 197 && missile.y - 7 <= 197 + 16) { 
-			for (uint8_t i = 0; i < 4; i++) {
-				shield = &shields[i];
-				if (missile.x + 1 >= shield->x && missile.x < shield->x + (22 << 1)) {
-					shield_make_damage(shield, missile.x, missile.y - 4, bits_shield_damage_player);
-					break;
-				}
-			}
-		}
-		missile.explode_frame = cfg_missile_explode_frames;
-	} else if (b->y >= 230) {
-		bullet_clear_leftover(b); 
+	if (b->y >= 230) {
+		bullet_clear_head(b); 
 		bullet_explode_at(b, 230);
 		b->explode_frame = cfg_bullet_explode_frames;
 	} else if (player_check_hit(b->x, b->y - cfg_bullet_speed, b->y + 6)) {
-		bullet_clear_leftover(b);
+		bullet_clear_head(b);
 		player_explode_animate();
 		b->active = false;
 		lives--;
@@ -978,17 +957,66 @@ bool bullet_collide_and_draw(bullet *b) {
 				if ((y = shield_check_hit(&shields[i], b->x, y_top, y_bottom, /*from_bottom*/false))
 						|| (y = shield_check_hit(&shields[i], b->x - 2, y_top, y_bottom, /*from_bottom*/false))
 						|| (y = shield_check_hit(&shields[i], b->x + 2, y_top, y_bottom, /*from_bottom*/false))) {
-					bullet_clear_leftover(b);
+					bullet_clear_head(b);
 					bullet_explode_at(b, y - 6);
 					b->explode_frame = cfg_bullet_shield_hit_frames;
 					shield_make_damage(&shields[i], b->x, b->y + 5, bits_shield_damage_bullet);
-					break;
+					return true;
 				}
 			}
 		}
-		if (b->explode_frame == 0) { // neither shield nor player are hit
-			bullet_draw(b);
+		if (missile_check_hit(b)) {
+			shield *shield;
+			bool bullet_explode = sys_rand() % 10 < cfg_bullet_explode_chance;
+			bool missile_explode = sys_rand() % 10 < cfg_missile_explode_chance;
+			uint16_t y = missile.y + b->y;
+			y >>= 1;
+			if (bullet_explode) {
+				bullet_clear_head(b);
+			}
+			if (missile_explode) {
+				// missile_clear
+				gdp_set_xy(missile.x, missile.y);
+				gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
+				gdp_set_xy(missile.x + 1, missile.y);
+				gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
+				// end of missile_clear
+			}
+			if (bullet_explode) {
+				b->y = y;
+				bullet_explode_at(b, b->y + 9 < 221 ? b->y : 211); // NOTE: cannot touch the player
+				// does it damage a shield?
+				if (b->y + 9 >= 197 && b->y + 2 <= 197 + 16) { 
+					for (uint8_t i = 0; i < 4; i++) {
+						shield = &shields[i];
+						if (b->x + 3 >= shield->x && b->x - 2 < shield->x + (22 << 1)) {
+							shield_make_damage(shield, b->x, b->y + 5, bits_shield_damage_bullet);
+							break;
+						}
+					}
+				}
+				b->explode_frame = cfg_bullet_explode_frames;
+			}
+			if (missile_explode) {
+				missile.y = y;
+				missile_explode_at(missile.y); // NOTE: cannot touch the player
+				// does it damage a shield?
+				if (missile.y >= 197 && missile.y - 7 <= 197 + 16) { 
+					for (uint8_t i = 0; i < 4; i++) {
+						shield = &shields[i];
+						if (missile.x + 1 >= shield->x && missile.x < shield->x + (22 << 1)) {
+							shield_make_damage(shield, missile.x, missile.y - 4, bits_shield_damage_player);
+							break;
+						}
+					}
+				}
+				missile.explode_frame = cfg_missile_explode_frames;
+			}
+			if (bullet_explode) {
+				return true;
+			}
 		}
+		bullet_draw(b);
 	}
 	return true;
 }
@@ -1246,17 +1274,17 @@ void game_init() {
 			inv->type = invader_type_by_row[i / 11];
 			inv->width = invader_width_by_type[inv->type];
 			inv->dx = invader_dx_by_type[inv->type];
-		 	inv->frame = 0;
-		 	inv->x = x << 1;
-		 	inv->y = y;
-		 	inv->state = STATE_MOVE_RIGHT;
-		 	inv->destroyed = false;
-		 	// This bit is complicated. Don't feel like refactoring. Life is too short.
-		 	inv->col = i % 11;
+			inv->frame = 0;
+			inv->x = x << 1;
+			inv->y = y;
+			inv->state = STATE_MOVE_RIGHT;
+			inv->destroyed = false;
+			// This bit is complicated. Don't feel like refactoring. Life is too short.
+			inv->col = i % 11;
 			inv->next = (i == 10) ? NULL : &invaders[ (i + 1) % 11 == 0 ? i - 21 : i + 1 ];
 			inv->prev = (i == 44) ? NULL : &invaders[ i % 11 == 0 ? i + 21 : i - 1 ];
-		 	grid_update(inv->col, inv->x, inv->x + (12 << 1) - 1);
-		 	i++;
+			grid_update(inv->col, inv->x, inv->x + (12 << 1) - 1);
+			i++;
 		}
 	}
 

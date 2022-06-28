@@ -89,16 +89,6 @@ typedef struct {
 	uint8_t explode_frame;
 } bullet;
 
-// debugging (TODO: remove this)
-
-uint8_t *to_binary_str(uint8_t val);
-void shield_print_bits(shield *shield);
-
-// shield
-
-void shield_erase_bits(shield *shield, int8_t x, int8_t y, uint8_t bits);
-void shield_handle_invader_collision(invader *inv, object_state state);
-
 // grid
 
 void grid_reset();
@@ -154,8 +144,8 @@ void missile_explode_at(uint8_t y);
 void bullet_draw(bullet *b);
 void bullet_explode_draw(bullet *b);
 void bullet_explode_clear(bullet *b);
-void bullet_clear_trail(bullet *b);
-void bullet_clear_leftover(bullet *b);
+void bullet_clear_tail(bullet *b);
+void bullet_clear_head(bullet *b);
 void bullet_explode_at(bullet *b, uint8_t y);
 bool bullet_collide_and_draw(bullet *bullet);
 
@@ -165,6 +155,8 @@ void shield_draw(shield *shield, uint8_t start_row);
 void shield_make_damage(shield *shield, uint16_t x, uint8_t y, uint8_t *bits);
 bool shield_check_hit_pixel(shield *shield, uint8_t x_local, int8_t y_local);
 uint8_t shield_check_hit(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bottom, bool from_bottom);
+void shield_erase_bits(shield *shield, int8_t x, int8_t y, uint8_t bits);
+void shield_handle_invader_collision(invader *inv, object_state state);
 
 // render
 
