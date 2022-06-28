@@ -30,25 +30,25 @@ uint8_t credits = 1;
 uint16_t hi_score = 0;
 
 uint8_t bits_shield_damage_player[] = {
-	137,
-	34,
-	126,
-	255,
-	255,
-	126,
-	36,
-	145
+	/* 10001001 */ 137,
+	/* 00100010 */ 34,
+	/* 01111110 */ 126,
+	/* 11111111 */ 255,
+	/* 11111111 */ 255,
+	/* 01111110 */ 126,
+	/* 00100100 */ 36,
+	/* 10010001 */ 145
 };
 
 uint8_t bits_shield_damage_bullet[] = {
-	/* 00100000 */ 32,
-	/* 10001000 */ 136,
-	/* 00110100 */ 52,
-	/* 01111000 */ 120,
-	/* 10111000 */ 184,
-	/* 01111100 */ 124,
-	/* 10111000 */ 184,
-	/* 01010100 */ 84
+	/* 00010000 */ 16,
+	/* 01000100 */ 68,
+	/* 00011010 */ 26,
+	/* 00111100 */ 60,
+	/* 01011100 */ 92,
+	/* 00111110 */ 62,
+	/* 01011100 */ 92,
+	/* 00101010 */ 42
 };
 
 uint8_t bits_shield[][3] = {
@@ -801,11 +801,11 @@ void mothership_timer_reset() {
 }
 
 void missile_explode_draw() {
-	gdp_draw_sprite(gfx_missile_explode, 7, missile.x - 6, missile.y - 7);
+	gdp_draw_sprite(gfx_missile_explode, 7, missile.x - 8, missile.y - 7);
 }
 
 void missile_explode_clear() {
-	gdp_erase_sprite(gfx_missile_explode, 7, missile.x - 6, missile.y - 7);
+	gdp_erase_sprite(gfx_missile_explode, 7, missile.x - 8, missile.y - 7);
 }
 
 bool missile_check_hit(bullet *b) {
@@ -1027,7 +1027,7 @@ void shield_draw(shield *shield, uint8_t start_row) {
 
 void shield_make_damage(shield *shield, uint16_t x, uint8_t y, uint8_t *bits) { // world coords
 	int8_t y_local = y - 197 - 3;
-	int8_t x_local = ((x - shield->x) >> 1) - 3;
+	int8_t x_local = ((x - shield->x) >> 1) - 4;
 	// update shield bits
 	for (uint8_t i = 0; i < 8; i++) {
 		shield_erase_bits(shield, x_local, y_local + i, bits[i]);
