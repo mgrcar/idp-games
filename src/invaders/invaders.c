@@ -471,7 +471,7 @@ const uint8_t cfg_invader_speed = 2 << 1;              // x = 2 << 1 // WARNME: 
 const uint8_t cfg_mothership_wait_frames = 1;          // x >= 1
 const uint8_t cfg_mothership_step = 1 << 1;            // 1 << 1 =< x <= 4 << 1
 const uint16_t cfg_mothership_spawn_delay_min = 1500;  // x >= 0
-const uint16_t cfg_mothership_spawn_delay_max = 3500;  // x >= cfg_mothership_spawn_delay_min_sec
+const uint16_t cfg_mothership_spawn_delay_max = 3500;  // x >= cfg_mothership_spawn_delay_min
 const uint8_t cfg_player_speed = 1 << 1;               // 1 << 1 <= x <= 4 << 1
 const uint8_t cfg_col_bullet_min_gap = 24;             // x >= 0
 const uint8_t cfg_missile_tail = 2;                    // should be computed as MAX_BULLETS x cfg_missile_speed - 10 (or 0 if negative)
@@ -696,7 +696,7 @@ bullet *invader_fire() {
 				col_bullet_y[b->col] = b->y;
 				// DEBUGGING
 				//player.x = b->x - 10;
-				b->x = player.x + 12;
+				b->x = 175 << 1;
 				// *********
 				return b;
 			}
@@ -986,9 +986,9 @@ bool bullet_collide_and_draw(bullet *b) {
 				b->y = y - 6;
 				missile.y = y + 3;
 			} else if (bullet_explode) {
-				b->y = missile.y - 1;
+				//b->y = missile.y - 1;
 			} else if (missile_explode) {
-				missile.y = b->y - 1;
+				//missile.y = b->y - 1;
 			}
 			if (bullet_explode) {
 				bullet_explode_at(b, b->y + 9 < 221 ? b->y : 211); // NOTE: cannot touch the player
@@ -996,7 +996,7 @@ bool bullet_collide_and_draw(bullet *b) {
 				if (b->y + 9 >= 197 && b->y + 2 <= 197 + 16) { 
 					for (uint8_t i = 0; i < 4; i++) {
 						shield = &shields[i];
-						if (b->x + 3 >= shield->x && b->x - 2 < shield->x + (22 << 1)) {
+						if (b->x + 5 >= shield->x && b->x - 6 < shield->x + (22 << 1)) {
 							shield_make_damage(shield, b->x, b->y + 5, bits_shield_damage_bullet);
 							break;
 						}
@@ -1010,7 +1010,7 @@ bool bullet_collide_and_draw(bullet *b) {
 				if (missile.y >= 197 && missile.y - 7 <= 197 + 16) { 
 					for (uint8_t i = 0; i < 4; i++) {
 						shield = &shields[i];
-						if (missile.x + 1 >= shield->x && missile.x < shield->x + (22 << 1)) {
+						if (missile.x + 7 >= shield->x && missile.x - 8 < shield->x + (22 << 1)) {
 							shield_make_damage(shield, missile.x, missile.y - 4, bits_shield_damage_missile);
 							break;
 						}
@@ -1301,7 +1301,7 @@ void game_init() {
 	}
 
 	// init player
-	player.x = 161 << 1;
+	player.x = /*161 << 1;*/ 170 << 1; // WARNME debugging
 	player.state = STATE_HOLD;
 
 	// init missile
