@@ -674,11 +674,6 @@ int invader_select_shooter() {
 }
 
 bullet *invader_fire() {
-	// DEBUG CODE
-	for (uint8_t i = 0; i < MAX_BULLETS; i++) {
-		if (bullets[i].active) { return false; }
-	}
-	// EO DEBUG CODE
 	for (uint8_t i = 0; i < MAX_BULLETS; i++) {
 		bullet *b = &bullets[i];
 		if (!b->active) {
@@ -694,10 +689,6 @@ bullet *invader_fire() {
 				b->explode_frame = 0;
 				b->col = shooter_idx % 11;
 				col_bullet_y[b->col] = b->y;
-				// DEBUGGING
-				//player.x = b->x - 10;
-				b->x = 175 << 1;
-				// *********
 				return b;
 			}
 		}
@@ -1301,7 +1292,7 @@ void game_init() {
 	}
 
 	// init player
-	player.x = /*161 << 1;*/ 170 << 1; // WARNME debugging
+	player.x = 161 << 1;
 	player.state = STATE_HOLD;
 
 	// init missile
