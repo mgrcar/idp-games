@@ -1005,7 +1005,7 @@ bool bullet_collide_and_draw(bullet *b) {
 				b->explode_frame = cfg_bullet_explode_frames;
 			}
 			if (missile_explode) {
-				missile_explode_at(missile.y); // NOTE: cannot touch the player
+				missile_explode_at(missile.y < 221 ? missile.y : 220); // NOTE: cannot touch the player
 				// does it damage a shield?
 				if (missile.y >= 197 && missile.y - 7 <= 197 + 16) { 
 					for (uint8_t i = 0; i < 4; i++) {
