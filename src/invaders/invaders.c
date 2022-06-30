@@ -363,37 +363,37 @@ uint8_t *gfx_bullet[][4][7] = {
 		}
 	}, { // type 1
 		{ // frame 0
+			"\x00",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x01\xC3",
 			"\x02\x01\xC1",
-			"\x02\x01\xC1",
-			"\x00"
+			"\x02\x01\xC1"
 		}, { // frame 1
+			"\x00",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x01\xC3",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
-			"\x02\x01\xC1",
-			"\x00"
+			"\x02\x01\xC1"
 		}, { // frame 2
+			"\x00",
 			"\x01\xC3",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
-			"\x02\x01\xC1",
-			"\x00"
+			"\x02\x01\xC1"
 		}, { // frame 3
+			"\x00",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
 			"\x02\x01\xC1",
-			"\x01\xC3",
-			"\x00"
+			"\x01\xC3"
 		}
 	}, { // type 2
 		{ // frame 0
@@ -467,22 +467,22 @@ const uint8_t cfg_mothership_explode_frames = 24;      // x >= 1
 const uint8_t cfg_mothership_score_frames = 40;        // x >= 1
 const uint8_t cfg_missile_speed = 4;                   // x >= 4
 const uint8_t cfg_bullet_speed = 4;                    // x >= 1
-const uint8_t cfg_invader_speed = 2 << 1;              // x = 2 << 1 // WARNME: do not change!
+const uint8_t cfg_invader_speed = 2 << 1;              // x = 2 << 1 // WARNME: DO NOT CHANGE!
 const uint8_t cfg_mothership_wait_frames = 1;          // x >= 1
 const uint8_t cfg_mothership_step = 1 << 1;            // 1 << 1 =< x <= 4 << 1
 const uint16_t cfg_mothership_spawn_delay_min = 1500;  // x >= 0
 const uint16_t cfg_mothership_spawn_delay_max = 3500;  // x >= cfg_mothership_spawn_delay_min_sec
-const uint16_t cfg_invader_fire_delay_min = 50;        // x >= 0
-const uint16_t cfg_invader_fire_delay_max = 200;       // x >= cfg_invader_fire_delay_min
-const uint8_t cfg_player_speed = 1 << 1;               // 1 << 1 <= x <= 4 << 1 // NOTE: With 3 bullets, cfg_mothership_step and cfg_player_speed should be 3. Not sure if this works though.
+const uint8_t cfg_player_speed = 1 << 1;               // 1 << 1 <= x <= 4 << 1
 const uint8_t cfg_col_bullet_min_gap = 24;             // x >= 0
-
-const uint8_t cfg_bullet_explode_chance = 5;           // 0 <= x <= 10
-const uint8_t cfg_missile_explode_chance = 5;          // 0 <= x <= 10
-
 const uint8_t cfg_missile_tail = 2;                    // should be computed as MAX_BULLETS x cfg_missile_speed - 10 (or 0 if negative)
 
-uint8_t cfg_invader_row_offset = 0;                    // x >= 0
+// level design
+
+uint8_t lvl_invader_row_offset[] = { 0, 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+uint8_t lvl_bullet_explode_chance[] =  { 0, 10, 9, 8, 7, 6, 5, 4, 3,  2 };
+uint8_t lvl_missile_explode_chance[] = { 0,  2, 3, 4, 5, 6, 7, 8, 9, 10 };
+uint16_t lvl_invader_fire_delay_min[] = { 0,  50,  50,  50,  50,  50,  50,  50,  50,  50 };
+uint16_t lvl_invader_fire_delay_max[] = { 0, 200, 200, 200, 200, 200, 200, 200, 200, 200 };
 
 uint8_t *debug_to_binary_str(uint8_t val) { // WARNME: for debugging only
 	for (uint8_t i = 0; i < 8; i++) {
@@ -707,8 +707,8 @@ bullet *invader_fire() {
 
 void invader_fire_timer_reset() {
 	invader_fire_timer = timer();
-	invader_fire_delay = cfg_invader_fire_delay_min +
-		(sys_rand() % (cfg_invader_fire_delay_max - cfg_invader_fire_delay_min + 1));
+	invader_fire_delay = lvl_invader_fire_delay_min[level] +
+		(sys_rand() % (lvl_invader_fire_delay_max[level] - lvl_invader_fire_delay_min[level] + 1));
 }
 
 void player_draw(object_state state) {
@@ -968,8 +968,8 @@ bool bullet_collide_and_draw(bullet *b) {
 		}
 		if (missile_check_hit(b)) {
 			shield *shield;
-			bool bullet_explode = sys_rand() % 10 < cfg_bullet_explode_chance;
-			bool missile_explode = sys_rand() % 10 < cfg_missile_explode_chance;
+			bool bullet_explode = sys_rand() % 10 < lvl_bullet_explode_chance[level];
+			bool missile_explode = sys_rand() % 10 < lvl_missile_explode_chance[level];
 			if (bullet_explode) {
 				bullet_clear_head(b);
 			}
@@ -1075,26 +1075,26 @@ uint8_t shield_check_hit(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bo
 }
 
 user_action render_plain_text(uint8_t *text, int delay) {
-    uint8_t i = 0;
-    user_action action;
-    while (text[i] != 0) {
-    	if (delay > 0) {
-	   		if (action = game_intro_keyboard_handler(delay)) { 
-	   			return action; 
-	   		}
-	   	} else if (delay < 0) {
-	   		msleep(-delay);
-	   	}
-        gdp_wait_ready();
-    	GDP_CTRL_1 = GDP_CTRL_1_TOOL_DOWN | GDP_TOOL_PEN;
-    	uint8_t ch = text[i++];
-        GDP_CMD = ch;
-        gdp_wait_ready();
-	    GDP_CTRL_1 = GDP_CTRL_1_TOOL_UP;
-	    GDP_DX = 2 << 1;
-	    GDP_CMD = GDP_CMD_LINE_DX_POS;
-    }
-    return ACTION_NONE;
+	uint8_t i = 0;
+	user_action action;
+	while (text[i] != 0) {
+		if (delay > 0) {
+			if (action = game_intro_keyboard_handler(delay)) { 
+				return action; 
+			}
+		} else if (delay < 0) {
+			msleep(-delay);
+		}
+		gdp_wait_ready();
+		GDP_CTRL_1 = GDP_CTRL_1_TOOL_DOWN | GDP_TOOL_PEN;
+		uint8_t ch = text[i++];
+		GDP_CMD = ch;
+		gdp_wait_ready();
+		GDP_CTRL_1 = GDP_CTRL_1_TOOL_UP;
+		GDP_DX = 2 << 1;
+		GDP_CMD = GDP_CMD_LINE_DX_POS;
+	}
+	return ACTION_NONE;
 }
 
 user_action render_text_at(uint16_t x, uint8_t y, uint8_t *text, int delay) {
@@ -1255,9 +1255,6 @@ user_action game_intro() {
 }
 
 void game_init() {
-	// init level
-	cfg_invader_row_offset = level - 1;
-
 	// init grid
 	for (uint8_t i = 0; i < 11; i++) {
 		grid.cols[i].x_min = grid.cols_new[i].x_min = 1024;
@@ -1273,7 +1270,7 @@ void game_init() {
 
 	// init invaders
 	uint8_t i = 0;
-	uint8_t j = cfg_invader_row_offset << 3;
+	uint8_t j = lvl_invader_row_offset[level] << 3;
 	for (uint8_t y = 61 + j; y <= 125 + j; y += 16) {
 		for (uint16_t x = 169; x <= 329; x += 16) {
 			invader *inv = &invaders[i];
