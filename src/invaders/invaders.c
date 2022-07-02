@@ -9,6 +9,8 @@
 #define BUFFER_SIZE 256
 #define MAX_BULLETS 3
 
+#define DEBUG
+
 uint8_t buffer[BUFFER_SIZE];
 
 invader invaders[55];
@@ -16,12 +18,13 @@ bullet bullets[MAX_BULLETS];
 player player;
 mothership mothership;
 grid grid;
-uint8_t col_bullet_y[11];
 missile missile;
 shield shields[4];
 
 invader *first_inv;
-uint8_t bullet_idx = 0;
+uint8_t bullet_idx;
+
+uint8_t col_bullet_y[11];
 
 uint16_t score;
 uint8_t lives;
@@ -52,22 +55,22 @@ uint8_t bits_shield_damage_bullet[] = {
 };
 
 uint8_t bits_shield[][3] = {
-	{ 15,  255, 192 },
-	{ 31,  255, 224 },
-	{ 63,  255, 240 },
-	{ 127, 255, 248 },
-	{ 255, 255, 252 },
-	{ 255, 255, 252 },
-	{ 255, 255, 252 },
-	{ 255, 255, 252 },
-	{ 255, 255, 252 },
-	{ 255, 255, 252 },
-	{ 255, 255, 252 },
-	{ 255, 255, 252 },
-	{ 254, 1,   252 },
-	{ 252, 0,   252 },
-	{ 248, 0,   124 },
-	{ 248, 0,   124 }
+	/* 00001111 11111111 11000000 */ { 15,  255, 192 },
+	/* 00011111 11111111 11100000 */ { 31,  255, 224 },
+	/* 00111111 11111111 11110000 */ { 63,  255, 240 },
+	/* 01111111 11111111 11111000 */ { 127, 255, 248 },
+	/* 11111111 11111111 11111100 */ { 255, 255, 252 },
+	/* 11111111 11111111 11111100 */ { 255, 255, 252 },
+	/* 11111111 11111111 11111100 */ { 255, 255, 252 },
+	/* 11111111 11111111 11111100 */ { 255, 255, 252 },
+	/* 11111111 11111111 11111100 */ { 255, 255, 252 },
+	/* 11111111 11111111 11111100 */ { 255, 255, 252 },
+	/* 11111111 11111111 11111100 */ { 255, 255, 252 },
+	/* 11111111 11111111 11111100 */ { 255, 255, 252 },
+	/* 11111110 00000001 11111100 */ { 254, 1,   252 },
+	/* 11111100 00000000 11111100 */ { 252, 0,   252 },
+	/* 11111000 00000000 01111100 */ { 248, 0,   124 },
+	/* 11111000 00000000 01111100 */ { 248, 0,   124 }
 };
 
 // [type][state][frame][scanline]
@@ -481,8 +484,10 @@ const uint8_t cfg_missile_tail = 2;                    // should be computed as 
 uint8_t lvl_invader_row_offset[] = { 0, 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 uint8_t lvl_bullet_explode_chance[] =  { 0, 10, 9, 8, 7, 6, 5, 4, 3,  2 };
 uint8_t lvl_missile_explode_chance[] = { 0,  2, 3, 4, 5, 6, 7, 8, 9, 10 };
-uint16_t lvl_invader_fire_delay_min[] = { 0,  50,  50,  50,  50,  50,  50,  50,  50,  50 };
-uint16_t lvl_invader_fire_delay_max[] = { 0, 200, 200, 200, 200, 200, 200, 200, 200, 200 };
+uint16_t lvl_invader_fire_delay_min[] = { 0, 100,  88,  76,  64,  52, 40, 28, 15, 0 };
+uint16_t lvl_invader_fire_delay_max[] = { 0, 200, 175, 150, 125, 100, 75, 50, 25, 0 };
+
+#ifdef DEBUG
 
 uint8_t *debug_to_binary_str(uint8_t val) { // WARNME: for debugging only
 	for (uint8_t i = 0; i < 8; i++) {
@@ -501,6 +506,8 @@ void debug_print_bits(shield *shield) { // WARNME: for debugging only
 		}
 	}
 }
+
+#endif
 
 void shield_erase_bits(shield *shield, int8_t x, int8_t y, uint8_t bits) { // local coords
 	// WARNME: we assume that x is within bounds
@@ -567,17 +574,17 @@ void grid_reset() {
 }
 
 void grid_update(uint8_t col_idx, uint16_t x_min, uint16_t x_max) {
-	if (grid.cols[col_idx].x_min > x_min) { 
-		grid.cols[col_idx].x_min = x_min; 
+	if (grid.cols[col_idx].x_min > x_min) {
+		grid.cols[col_idx].x_min = x_min;
 	}
-	if (grid.cols[col_idx].x_max < x_max) { 
-		grid.cols[col_idx].x_max = x_max; 
+	if (grid.cols[col_idx].x_max < x_max) {
+		grid.cols[col_idx].x_max = x_max;
 	}
-	if (grid.cols_new[col_idx].x_min > x_min) { 
-		grid.cols_new[col_idx].x_min = x_min; 
+	if (grid.cols_new[col_idx].x_min > x_min) {
+		grid.cols_new[col_idx].x_min = x_min;
 	}
-	if (grid.cols_new[col_idx].x_max < x_max) { 
-		grid.cols_new[col_idx].x_max = x_max; 
+	if (grid.cols_new[col_idx].x_max < x_max) {
+		grid.cols_new[col_idx].x_max = x_max;
 	}
 }
 
@@ -668,7 +675,7 @@ int invader_select_shooter() {
 		}
 	}
 	// TODO: choose the shooter smartly rather than randomly
-	return count > 0 
+	return count > 0
 		? shooters[sys_rand() % count]
 		: -1;
 }
@@ -719,8 +726,8 @@ void player_move_left() {
 
 void player_score_update(uint16_t points) {
 	score += points;
-	if (score > 9999) { 
-		score = 9999; 
+	if (score > 9999) {
+		score = 9999;
 	}
 	render_score();
 	if (score > hi_score) {
@@ -817,7 +824,7 @@ void missile_collide_and_draw() {
 		missile_explode_at(37);
 		missile.explode_frame = cfg_missile_explode_frames;
 		return;
-	} 
+	}
 	for (uint8_t col = 0; col < 11; col++) {
 		if (missile.x >= grid.cols[col].x_min && missile.x <= grid.cols[col].x_max) {
 			// we might have hit an invader in column 'col'
@@ -872,7 +879,7 @@ void missile_collide_and_draw() {
 }
 
 void missile_explode_at(uint8_t y) {
-	missile.y = y; 
+	missile.y = y;
 	missile_explode_draw();
 }
 
@@ -925,7 +932,7 @@ bool bullet_collide_and_draw(bullet *b) {
 	bullet_clear_tail(b);
 	b->frame = (b->frame + 1) & 3;
 	if (b->y >= 230) {
-		bullet_clear_head(b); 
+		bullet_clear_head(b);
 		bullet_explode_at(b, 230);
 		b->explode_frame = cfg_bullet_explode_frames;
 	} else if (player_check_hit(b->x, b->y - cfg_bullet_speed, b->y + 6)) {
@@ -943,7 +950,7 @@ bool bullet_collide_and_draw(bullet *b) {
 		// check if shield was hit
 		uint8_t y_top = b->y - cfg_bullet_speed;
 		uint8_t y_bottom = b->y + 6;
-		if (y_bottom >= 197 && y_top <= 197 + 16) { 
+		if (y_bottom >= 197 && y_top <= 197 + 16) {
 			for (uint8_t i = 0; i < 4; i++) {
 				uint8_t y;
 				if ((y = shield_check_hit(&shields[i], b->x, y_top, y_bottom, /*from_bottom*/false))
@@ -984,7 +991,7 @@ bool bullet_collide_and_draw(bullet *b) {
 			if (bullet_explode) {
 				bullet_explode_at(b, b->y + 9 < 221 ? b->y : 211); // NOTE: cannot touch the player
 				// does it damage a shield?
-				if (b->y + 9 >= 197 && b->y + 2 <= 197 + 16) { 
+				if (b->y + 9 >= 197 && b->y + 2 <= 197 + 16) {
 					for (uint8_t i = 0; i < 4; i++) {
 						shield = &shields[i];
 						if (b->x + 5 >= shield->x && b->x - 6 < shield->x + (22 << 1)) {
@@ -998,7 +1005,7 @@ bool bullet_collide_and_draw(bullet *b) {
 			if (missile_explode) {
 				missile_explode_at(missile.y < 221 ? missile.y : 220); // NOTE: cannot touch the player
 				// does it damage a shield?
-				if (missile.y >= 197 && missile.y - 7 <= 197 + 16) { 
+				if (missile.y >= 197 && missile.y - 7 <= 197 + 16) {
 					for (uint8_t i = 0; i < 4; i++) {
 						shield = &shields[i];
 						if (missile.x + 7 >= shield->x && missile.x - 8 < shield->x + (22 << 1)) {
@@ -1033,8 +1040,8 @@ void shield_make_damage(shield *shield, uint16_t x, uint8_t y, uint8_t *bits) { 
 
 bool shield_check_hit_pixel(shield *shield, uint8_t x_local, int8_t y_local) { // local coords
 	// WARNME: we assume that x_local is within bounds
-	if (y_local < 0 || y_local > 15) { 
-		return false; 
+	if (y_local < 0 || y_local > 15) {
+		return false;
 	}
 	uint8_t byte = shield->bits[y_local][x_local >> 3];
 	return ((byte << (x_local & 7)) & 128) != 0;
@@ -1070,8 +1077,8 @@ user_action render_plain_text(uint8_t *text, int delay) {
 	user_action action;
 	while (text[i] != 0) {
 		if (delay > 0) {
-			if (action = game_intro_keyboard_handler(delay)) { 
-				return action; 
+			if (action = game_intro_keyboard_handler(delay)) {
+				return action;
 			}
 		} else if (delay < 0) {
 			msleep(-delay);
@@ -1106,8 +1113,8 @@ user_action render_text_at(uint16_t x, uint8_t y, uint8_t *text, int delay) {
 		if (*p_e == '^') {
 			// write text from p_s to p_e
 			*p_e = 0;
-			if (action = render_plain_text(p_s, delay)) { 
-				return action; 
+			if (action = render_plain_text(p_s, delay)) {
+				return action;
 			}
 			x_e += (strlen(p_s) * 8) << 1;
 			p_s = p_e + 1;
@@ -1255,10 +1262,6 @@ void game_init() {
 	grid.col_non_empty_last = 10;
 	grid.col_non_empty_first = 0;
 
-	for (uint8_t i = 0; i < 11; i++) {
-		col_bullet_y[i] = 255;
-	}
-
 	// init invaders
 	uint8_t i = 0;
 	uint8_t j = lvl_invader_row_offset[level] << 3;
@@ -1323,6 +1326,13 @@ void game_init() {
 		}
 	}
 
+	// init other stuff
+	for (uint8_t i = 0; i < 11; i++) {
+		col_bullet_y[i] = 255;
+	}
+
+	bullet_idx = 0;
+
 	// render stuff
 	render_cls();
 	render_lives();
@@ -1342,8 +1352,8 @@ void game_over() {
 	msleep(1000);
 	timer_reset(0);
 	do {
-		if (kbhit()) { 
-			break; 
+		if (kbhit()) {
+			break;
 		}
 	} while (timer_diff() < 500);
 }
@@ -1392,15 +1402,15 @@ game_state game() {
 				case 'a':
 				case 'A':
 					// left / stop
-					player.state = player.state == STATE_MOVE_LEFT 
-						? STATE_HOLD 
+					player.state = player.state == STATE_MOVE_LEFT
+						? STATE_HOLD
 						: STATE_MOVE_LEFT;
 					break;
 				case 'd':
 				case 'D':
 					// right / stop
-					player.state = player.state == STATE_MOVE_RIGHT 
-						? STATE_HOLD 
+					player.state = player.state == STATE_MOVE_RIGHT
+						? STATE_HOLD
 						: STATE_MOVE_RIGHT;
 					break;
 				case ' ':
@@ -1409,26 +1419,28 @@ game_state game() {
 						missile.x = player.x + (6 << 1);
 						missile.y = 220 + cfg_missile_speed;
 						mothership_score_idx++;
-						if (mothership_score_idx > 23) { 
-							mothership_score_idx = 9; 
+						if (mothership_score_idx > 23) {
+							mothership_score_idx = 9;
 						}
 					}
 					break;
+#ifdef DEBUG
 				case 'b':
 				case 'B':
 					debug_print_bits(&shields[0]);
 					break;
-				case 'x':
-				case 'X':
-				case 3:
-					return GAME_STATE_EXIT;
 				case 'g':
 				case 'G':
 					return GAME_STATE_GAME_OVER;
 				case 'n':
 				case 'N':
 					return GAME_STATE_LEVEL_CLEARED;
-				default: 
+#endif
+				case 'x':
+				case 'X':
+				case 3:
+					return GAME_STATE_EXIT;
+				default:
 					// stop
 					player.state = STATE_HOLD;
 					break;
@@ -1438,8 +1450,8 @@ game_state game() {
 			bullet *b;
 			if (timer_diff_ex(invader_fire_timer, 0) >= invader_fire_delay) {
 				if (b = invader_fire()) {
-					if (!bullet_collide_and_draw(b)) { 
-						return GAME_STATE_GAME_OVER; 
+					if (!bullet_collide_and_draw(b)) {
+						return GAME_STATE_GAME_OVER;
 					}
 				}
 				invader_fire_timer_reset();
@@ -1457,8 +1469,8 @@ game_state game() {
 				} else {
 					b->y += cfg_bullet_speed;
 				}
-				if (!bullet_collide_and_draw(b)) { 
-					return GAME_STATE_GAME_OVER; 
+				if (!bullet_collide_and_draw(b)) {
+					return GAME_STATE_GAME_OVER;
 				}
 			}
 			bullet_idx = (bullet_idx + 1) % MAX_BULLETS; // next bullet
@@ -1569,8 +1581,8 @@ int main() {
 		render_level();
 		render_hi_score();
 		render_credits();
-		if (game_intro() == ACTION_EXIT) { 
-			break; 
+		if (game_intro() == ACTION_EXIT) {
+			break;
 		}
 		credits--;
 		render_credits();
@@ -1581,8 +1593,8 @@ int main() {
 				break;
 			} else if (state == GAME_STATE_LEVEL_CLEARED) {
 				level++;
-				if (level == 10) { 
-					level = 9; 
+				if (level == 10) {
+					level = 9;
 				}
 				render_level();
 			} else { // state == GAME_STATE_GAME_OVER
