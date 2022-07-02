@@ -1,3 +1,5 @@
+#define DEBUG
+
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -8,8 +10,6 @@
 
 #define BUFFER_SIZE 256
 #define MAX_BULLETS 3
-
-#define DEBUG
 
 uint8_t buffer[BUFFER_SIZE];
 
@@ -400,36 +400,36 @@ uint8_t *gfx_bullet[][4][7] = {
 		}
 	}, { // type 2
 		{ // frame 0
-			"\x01\xC1",
+			"\x02\xC1\x81",
 			"\x02\x01\xC1",
-			"\x02\x02\xC1",
+			"\x03\x01\x81\xC1",
 			"\x02\x01\xC1",
-			"\x01\xC1",
+			"\x02\xC1\x81",
 			"\x02\x01\xC1",
-			"\x02\x02\xC1"
+			"\x03\x01\x81\xC1"
 		}, { // frame 1
 			"\x02\x01\xC1",
-			"\x02\x02\xC1",
+			"\x03\x01\x81\xC1",
 			"\x02\x01\xC1",
-			"\x01\xC1",
+			"\x02\xC1\x81",
 			"\x02\x01\xC1",
-			"\x02\x02\xC1",
+			"\x03\x01\x81\xC1",
 			"\x02\x01\xC1"
 		}, { // frame 2
-			"\x02\x02\xC1",
+			"\x03\x01\x81\xC1",
 			"\x02\x01\xC1",
-			"\x01\xC1",
+			"\x02\xC1\x81",
 			"\x02\x01\xC1",
-			"\x02\x02\xC1",
+			"\x03\x01\x81\xC1",
 			"\x02\x01\xC1",
-			"\x01\xC1"
+			"\x02\xC1\x81"
 		}, { // frame 3
 			"\x02\x01\xC1",
-			"\x01\xC1",
+			"\x02\xC1\x81",
 			"\x02\x01\xC1",
-			"\x02\x02\xC1",
+			"\x03\x01\x81\xC1",
 			"\x02\x01\xC1",
-			"\x01\xC1",
+			"\x02\xC1\x81",
 			"\x02\x01\xC1"
 		}
 	}
@@ -508,49 +508,6 @@ void debug_print_bits(shield *shield) { // WARNME: for debugging only
 }
 
 #endif
-
-void shield_erase_bits(shield *shield, int8_t x, int8_t y, uint8_t bits) { // local coords
-	// WARNME: we assume that x is within bounds
-	uint16_t *dest;
-	if (y >= 0 && y <= 15) {
-		if (x >= 8) {
-			x -= 8;
-			dest = &shield->bits[y][1];
-		} else {
-			dest = &shield->bits[y][0];
-		}
-		uint16_t bits_16 = bits;
-		bits_16 = x <= 8 ? ~(bits_16 << (8 - x)) : ~(bits_16 >> (x - 8));
-		*dest &= (bits_16 >> 8) | (bits_16 << 8);
-	}
-}
-
-void shield_handle_invader_collision(invader *inv, object_state state) {
-	if (inv->y >= 197) {
-		uint16_t inv_left = inv->x - gfx_dx_by_state[state]; // inclusive
-		uint16_t inv_right = inv_left + (16 << 1); // exclusive
-		for (uint8_t i = 0; i < 4; i++) {
-			uint16_t shield_left = shields[i].x; // inclusive
-			uint16_t shield_right = shield_left + (22 << 1); // exclusive
-			if (inv_left < shield_right && inv_right > shield_left) {
-				// collision detected
-				// clear 4 x 8 pixels
-				if (state == STATE_MOVE_LEFT) {
-					gdp_fill_rect(GDP_TOOL_ERASER, inv_left, inv->y, 4 << 1, 8);
-				} else {
-					gdp_fill_rect(GDP_TOOL_ERASER, inv_right - (4 << 1), inv->y, 4 << 1, 8);
-				}
-				// clear 16 bits in 8 shield rows
-				int8_t y_local = inv->y - 197;
-				int8_t x_local = (inv_left - shields[i].x) >> 1;
-				for (uint8_t j = 0; j < 8; j++) {
-					shield_erase_bits(&shields[i], x_local, y_local + j, 255);
-					shield_erase_bits(&shields[i], x_local + 8, y_local + j, 255);
-				}
-			}
-		}
-	}
-}
 
 void grid_reset() {
 	for (uint8_t i = 0; i < 11; i++) {
@@ -647,8 +604,8 @@ bool invader_move_down_right(invader *inv) {
 
 bool invader_check_hit(invader *inv, uint16_t x, uint8_t y_top, uint8_t y_bottom) {
 	uint16_t inv_x = inv->x + inv->dx;
-	return x + 1 >= inv_x && x < inv_x + inv->width
-		&& y_bottom >= inv->y && y_top <= inv->y + 7;
+	return y_bottom >= inv->y && y_top <= inv->y + 7
+		&& x + 1 >= inv_x && x < inv_x + inv->width;
 }
 
 void invader_explode_draw(invader *inv) {
@@ -748,8 +705,8 @@ void player_explode_animate() {
 }
 
 bool player_check_hit(uint16_t x, uint8_t y_top, uint8_t y_bottom) {
-	return x + 3 >= player.x && x - 2 < player.x + (13 << 1)
-		&& y_bottom >= 221 && y_top <= 221 + 8;
+	return y_bottom >= 221 && y_top <= 221 + 8
+		&& x + 3 >= player.x && x - 2 < player.x + (13 << 1);
 }
 
 void mothership_draw(object_state state) {
@@ -806,10 +763,10 @@ void missile_explode_clear() {
 	gdp_erase_sprite(gfx_missile_explode, 7, missile.x - 8, missile.y - 7);
 }
 
-bool missile_check_hit(bullet *b) {
-	return missile.explode_frame == 0 // missile is not exploding
-		&& missile.x >= b->x - 3 && missile.x <= b->x + 3 // NOTE: the first condition here fails if missile is not fired (missile.x is 0)
-		&& missile.y + cfg_missile_tail >= b->y - cfg_bullet_speed && missile.y - 3 <= b->y + 6;
+bool missile_check_hit(bullet *b) { // WARNME: order of checks!
+	return missile.x >= b->x - 3 && missile.x <= b->x + 3 // NOTE: the first condition here fails if missile is not fired (missile.x is 0)
+		&& missile.y + cfg_missile_tail >= b->y - cfg_bullet_speed && missile.y - 3 <= b->y + 6
+		&& missile.explode_frame == 0; // missile is not exploding
 }
 
 void missile_collide_and_draw() {
@@ -978,7 +935,7 @@ bool bullet_collide_and_draw(bullet *b) {
 				gdp_set_xy(missile.x + 1, missile.y);
 				gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/3, GDP_DELTA_SIGN_DY_NEG);
 			}
-			// adjust positions (so that the remaining projectile does not overlap with the explosion)
+			// adjust positions
 			if (bullet_explode && missile_explode) {
 				uint16_t y = (missile.y + b->y) >> 1;
 				b->y = y - 6;
@@ -1070,6 +1027,49 @@ uint8_t shield_check_hit(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bo
 		}
 	}
 	return 0;
+}
+
+void shield_erase_bits(shield *shield, int8_t x, int8_t y, uint8_t bits) { // local coords
+	// WARNME: we assume that x is within bounds
+	uint16_t *dest;
+	if (y >= 0 && y <= 15) {
+		if (x >= 8) {
+			x -= 8;
+			dest = &shield->bits[y][1];
+		} else {
+			dest = &shield->bits[y][0];
+		}
+		uint16_t bits_16 = bits;
+		bits_16 = x <= 8 ? ~(bits_16 << (8 - x)) : ~(bits_16 >> (x - 8));
+		*dest &= (bits_16 >> 8) | (bits_16 << 8);
+	}
+}
+
+void shield_handle_invader_collision(invader *inv, object_state state) {
+	if (inv->y >= 197) {
+		uint16_t inv_left = inv->x - gfx_dx_by_state[state]; // inclusive
+		uint16_t inv_right = inv_left + (16 << 1); // exclusive
+		for (uint8_t i = 0; i < 4; i++) {
+			uint16_t shield_left = shields[i].x; // inclusive
+			uint16_t shield_right = shield_left + (22 << 1); // exclusive
+			if (inv_left < shield_right && inv_right > shield_left) {
+				// collision detected
+				// clear 4 x 8 pixels
+				if (state == STATE_MOVE_LEFT) {
+					gdp_fill_rect(GDP_TOOL_ERASER, inv_left, inv->y, 4 << 1, 8);
+				} else {
+					gdp_fill_rect(GDP_TOOL_ERASER, inv_right - (4 << 1), inv->y, 4 << 1, 8);
+				}
+				// clear 16 bits in 8 shield rows
+				int8_t y_local = inv->y - 197;
+				int8_t x_local = (inv_left - shields[i].x) >> 1;
+				for (uint8_t j = 0; j < 8; j++) {
+					shield_erase_bits(&shields[i], x_local, y_local + j, 255);
+					shield_erase_bits(&shields[i], x_local + 8, y_local + j, 255);
+				}
+			}
+		}
+	}
 }
 
 user_action render_plain_text(uint8_t *text, int delay) {

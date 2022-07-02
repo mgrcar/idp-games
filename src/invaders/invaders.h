@@ -136,6 +136,7 @@ void mothership_timer_reset();
 
 void missile_explode_draw();
 void missile_explode_clear();
+bool missile_check_hit(bullet *b);
 void missile_collide_and_draw();
 void missile_explode_at(uint8_t y);
 
@@ -177,9 +178,5 @@ user_action game_intro();
 void game_init();
 void game_over();
 game_state game();
-
-// main
-
-int main();
 
 #endif
