@@ -486,6 +486,8 @@ uint8_t lvl_bullet_explode_chance[] =  { 0, 10, 9, 8, 7, 6, 5, 4, 3,  2 };
 uint8_t lvl_missile_explode_chance[] = { 0,  2, 3, 4, 5, 6, 7, 8, 9, 10 };
 uint16_t lvl_invader_fire_delay_min[] = { 0, 100,  88,  76,  64,  52, 40, 28, 15, 0 };
 uint16_t lvl_invader_fire_delay_max[] = { 0, 200, 175, 150, 125, 100, 75, 50, 25, 0 };
+uint8_t lvl_invader_fire_direct_chance[] = { 0, 2, 3, 3, 4, 4, 5, 5, 6 };
+uint8_t lvl_invader_fire_close_chance[] =  { 0, 2, 2, 2, 2, 2, 2, 2, 2 };
 
 #ifdef DEBUG
 
@@ -619,22 +621,47 @@ void invader_explode_clear(invader *inv) {
 int invader_select_shooter() {
 	uint8_t count = 0;
 	uint8_t shooters[11];
+	uint16_t last_dist = 1024;
+	uint8_t min_dist_idx = 0;
 	for (uint8_t j = 44; j < 55; j++) {
+		uint8_t i = j - 44;
 		for (int k = j; k >= 0; k -= 11) {
 			invader *inv = &invaders[k];
 			if (!inv->destroyed) {
-				if ((inv->y + 8 + cfg_col_bullet_min_gap) <= col_bullet_y[k % 11]) {
+				if ((inv->y + 8 + cfg_col_bullet_min_gap) <= col_bullet_y[i]) {
 					// invader k is ready to fire
-					shooters[count++] = k;
+					shooters[count] = k;
+					uint16_t dist = abs(inv->x - player.x);
+					if (dist < last_dist) {
+						last_dist = dist;
+						min_dist_idx = count;
+					}
+					count++;
 				}
 				break;
 			}
 		}
 	}
-	// TODO: choose the shooter smartly rather than randomly
-	return count > 0
-		? shooters[sys_rand() % count]
-		: -1;
+	if (count > 0) {
+		int r = sys_rand();
+		uint8_t x = r % 10;
+		if (x < lvl_invader_fire_direct_chance[level]) { // directly above the player
+			return shooters[min_dist_idx];
+		} else if (x < lvl_invader_fire_direct_chance[level] + lvl_invader_fire_close_chance[level]) { // close to the player
+			int8_t s = min_dist_idx - 2;
+			uint8_t e = min_dist_idx + 2;
+			if (e >= count) {
+				s -= e - count + 1;
+			}
+			if (s < 0) {
+				s = 0;
+			}
+			return shooters[s + ((r / 10) % (count < 5 ? count : 5))];
+		} else { // random
+			return shooters[(r / 10) % count];
+		}
+	}
+	return -1;
 }
 
 bullet *invader_fire() {
@@ -763,7 +790,7 @@ void missile_explode_clear() {
 	gdp_erase_sprite(gfx_missile_explode, 7, missile.x - 8, missile.y - 7);
 }
 
-bool missile_check_hit(bullet *b) { // WARNME: order of checks!
+bool missile_check_hit(bullet *b) {
 	return missile.x >= b->x - 3 && missile.x <= b->x + 3 // NOTE: the first condition here fails if missile is not fired (missile.x is 0)
 		&& missile.y + cfg_missile_tail >= b->y - cfg_bullet_speed && missile.y - 3 <= b->y + 6
 		&& missile.explode_frame == 0; // missile is not exploding
@@ -940,11 +967,11 @@ bool bullet_collide_and_draw(bullet *b) {
 				uint16_t y = (missile.y + b->y) >> 1;
 				b->y = y - 6;
 				missile.y = y + 3;
-			} else if (bullet_explode) {
-				//b->y = missile.y - 1;
+			} /*else if (bullet_explode) {
+				b->y = missile.y - 1;
 			} else if (missile_explode) {
-				//missile.y = b->y - 1;
-			}
+				missile.y = b->y - 1;
+			}*/
 			if (bullet_explode) {
 				bullet_explode_at(b, b->y + 9 < 221 ? b->y : 211); // NOTE: cannot touch the player
 				// does it damage a shield?
