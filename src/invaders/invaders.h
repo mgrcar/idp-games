@@ -73,9 +73,8 @@ typedef struct {
 	uint16_t x;
 	uint8_t y;
 	uint8_t explode_frame;
-	// collision info
-	invader *hit_invader;
-	bool hit_mothership;
+	invader *destroyed_invader;
+	bool destroyed_mothership;
 } missile;
 
 typedef struct {
