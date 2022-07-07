@@ -24,8 +24,6 @@ shield shields[4];
 invader *first_inv;
 uint8_t bullet_idx;
 
-bullet *last_bullet;
-
 uint16_t score;
 uint8_t lives;
 uint8_t level;
@@ -629,7 +627,7 @@ int invader_select_shooter() {
 		for (int k = j; k >= 0; k -= 11) {
 			invader *inv = &invaders[k];
 			if (!inv->destroyed) {
-				if (!last_bullet || last_bullet->y - (inv->y + 8) >= cfg_bullet_min_dist_y || abs(last_bullet->x - (inv->x + 10)) >= cfg_bullet_min_dist_x) {
+				if (bullet_check_dist(inv)) {
 					// invader k is ready to fire
 					shooters[count] = k;
 					uint16_t dist = abs(inv->x - player.x);
@@ -680,7 +678,6 @@ bullet *invader_fire() {
 				b->drawn = false;
 				b->explode_frame = 0;
 				b->col = shooter_idx % 11;
-				last_bullet = b;
 				return b;
 			}
 		}
@@ -819,7 +816,7 @@ void missile_collide_and_draw() {
 					inv->destroyed = true;
 					grid.cols[inv->col].invader_count--;
 					missile.explode_frame = cfg_invader_explode_frames;
-					missile.destroyed_invader = inv;
+					missile.hit_invader = inv;
 					invader_explode_draw(inv);
 					// remove from linked list
 					if (inv->prev != NULL) {
@@ -837,7 +834,7 @@ void missile_collide_and_draw() {
 		}
 	}
 	if (mothership_check_hit(missile.x, missile.y - 3, missile.y + cfg_missile_speed)) {
-		missile.destroyed_mothership = true;
+		missile.hit_mothership = true;
 		missile.explode_frame = cfg_mothership_explode_frames + cfg_mothership_score_frames;
 		mothership_explode_draw();
 		return;
@@ -923,9 +920,6 @@ bool bullet_collide_and_draw(bullet *b) {
 		bullet_clear_head(b);
 		player_explode_animate();
 		b->active = false;
-		if (last_bullet == b) {
-			last_bullet = NULL;
-		}
 		lives--;
 		render_lives();
 		if (lives == 0) {
@@ -1008,6 +1002,16 @@ bool bullet_collide_and_draw(bullet *b) {
 			}
 		}
 		bullet_draw(b);
+	}
+	return true;
+}
+
+bool bullet_check_dist(invader *inv) {
+	for (uint8_t i = 0; i < MAX_BULLETS; i++) {
+		bullet *b = &bullets[i];
+		if (b->active && b->y - (inv->y + 8) < cfg_bullet_min_dist_y && abs(b->x - (inv->x + 10)) < cfg_bullet_min_dist_x) {
+			return false;
+		}
 	}
 	return true;
 }
@@ -1331,8 +1335,8 @@ void game_init() {
 	// init missile
 	missile.x = 0; // not fired
 	missile.explode_frame = 0; // not exploding
-	missile.destroyed_invader = NULL;
-	missile.destroyed_mothership = false;
+	missile.hit_invader = NULL;
+	missile.hit_mothership = false;
 
 	// init mothership
 	mothership.x = 0;
@@ -1358,7 +1362,6 @@ void game_init() {
 
 	// init other stuff
 	bullet_idx = 0;
-	last_bullet = NULL;
 
 	// render stuff
 	render_cls();
@@ -1488,9 +1491,6 @@ game_state game() {
 				if (b->explode_frame == 1) {
 					bullet_explode_clear(b);
 					b->active = false;
-					if (last_bullet == b) {
-						last_bullet = NULL;
-					}
 				}
 				b->explode_frame--;
 			} else if (b->active) {
@@ -1503,17 +1503,17 @@ game_state game() {
 			// update player missile
 			if (missile.explode_frame > 0) {
 				if (missile.explode_frame == 1) {
-					if (missile.destroyed_mothership) {
+					if (missile.hit_mothership) {
 						mothership_explode_clear();
 						mothership_score_draw();
 						player_score_update(mothership_score[mothership_score_idx]);
-						missile.destroyed_mothership = false;
+						missile.hit_mothership = false;
 						mothership.score_x = mothership.x;
 						mothership.x = 0;
 						mothership.score_frame = cfg_mothership_score_frames;
-					} else if (missile.destroyed_invader) {
-						invader_explode_clear(missile.destroyed_invader);
-						missile.destroyed_invader = NULL;
+					} else if (missile.hit_invader) {
+						invader_explode_clear(missile.hit_invader);
+						missile.hit_invader = NULL;
 					} else {
 						missile_explode_clear();
 					}
@@ -1547,7 +1547,7 @@ game_state game() {
 				}
 				mothership.score_frame--;
 			}
-			if (!missile.destroyed_mothership) {
+			if (!missile.hit_mothership) {
 				if (mothership.x == 0) {
 					if (timer_diff_ex(mothership.spawn_timer, 0) >= mothership.spawn_delay) {
 						mothership.state = sys_rand() % 2 == 0
