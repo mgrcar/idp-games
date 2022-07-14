@@ -6,14 +6,33 @@
 int16_t timer_start;
 int16_t timer_offset;
 
+uint16_t timer_ms() {
+	uint8_t s = CTC_SECONDS;
+	uint8_t s100 = CTC_HUNDREDS;
+	uint8_t cs10 = CTC_TENTHS_CS;
+	uint8_t s100_check = CTC_HUNDREDS;
+	uint8_t s_check = CTC_SECONDS;
+	uint16_t ms;
+	if (s100 == s100_check) {
+		ms = bcd2bin(s100) * 10 + bcd2bin(cs10 >> 4);
+	} else {
+		ms = bcd2bin(s100_check) * 10;
+	}
+	if (s == s_check) {
+		return bcd2bin(s) * 1000 + ms;
+	} else {
+		return bcd2bin(s_check) * 1000;
+	}
+}
+
 int16_t timer() {
-	while (true) {
-		uint8_t seconds = CTC_SECONDS;
-		uint8_t hundreds = CTC_HUNDREDS;
-		uint8_t seconds_check = CTC_SECONDS;
-		if (seconds == seconds_check) {
-			return bcd2bin(hundreds) + 100 * bcd2bin(seconds);
-		}
+	uint8_t seconds = CTC_SECONDS;
+	uint8_t hundreds = CTC_HUNDREDS;
+	uint8_t seconds_check = CTC_SECONDS;
+	if (seconds == seconds_check) {
+		return bcd2bin(seconds) * 100 + bcd2bin(hundreds);
+	} else {
+		return bcd2bin(seconds_check) * 100;
 	}
 }
 

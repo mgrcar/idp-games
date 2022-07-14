@@ -51,7 +51,6 @@ typedef struct _invader {
 
 typedef struct {
 	uint16_t x;
-	uint8_t wait_frame;
 	object_state state;
 	uint16_t spawn_delay;
 	uint16_t spawn_timer;
@@ -108,10 +107,11 @@ void invader_explode_clear(invader *inv);
 int invader_select_shooter();
 bullet *invader_fire();
 void invader_fire_timer_reset();
+bool invader_update(invader *inv);
 
 // player
 
-void player_draw(object_state state);
+void player_draw();
 void player_move_right();
 void player_move_left();
 void player_score_update(uint16_t points);
@@ -120,7 +120,7 @@ bool player_check_hit(uint16_t x, uint8_t y_top, uint8_t y_bottom);
 
 // mothership
 
-void mothership_draw(object_state state);
+void mothership_draw();
 void mothership_move_right();
 void mothership_move_left();
 void mothership_clear();
@@ -136,7 +136,7 @@ void mothership_timer_reset();
 void missile_explode_draw();
 void missile_explode_clear();
 bool missile_check_hit(bullet *b);
-void missile_collide_and_draw();
+void missile_update();
 void missile_explode_at(uint8_t y);
 
 // bullet
@@ -147,7 +147,7 @@ void bullet_explode_clear(bullet *b);
 void bullet_clear_tail(bullet *b);
 void bullet_clear_head(bullet *b);
 void bullet_explode_at(bullet *b, uint8_t y);
-bool bullet_collide_and_draw(bullet *bullet);
+bool bullet_update(bullet *bullet);
 bool bullet_check_dist(invader *inv);
 
 // shield

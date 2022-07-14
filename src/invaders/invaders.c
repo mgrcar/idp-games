@@ -202,48 +202,27 @@ uint8_t *gfx_invaders[][2][2][8] = {
 	}
 };
 
-// [state][scanline]
-uint8_t *gfx_player[][8] = {
-	{ // right
-		"\x03\x8A\xC1\x85",
-		"\x03\x89\xC3\x84",
-		"\x03\x89\xC3\x84",
-		"\x02\x85\xCB",
-		"\x02\x84\xCD",
-		"\x02\x84\xCD",
-		"\x02\x84\xCD",
-		"\x02\x84\xCD"
-	}, { // left
-		"\x04\x01\x85\xC1\x8A",
-		"\x04\x01\x84\xC3\x89",
-		"\x04\x01\x84\xC3\x89",
-		"\x03\x01\xCB\x85",
-		"\x02\xCD\x84",
-		"\x02\xCD\x84",
-		"\x02\xCD\x84",
-		"\x02\xCD\x84"
-	}
+// [scanline]
+uint8_t *gfx_player[8] = {
+	"\x03\x88\xC1\x88",
+	"\x03\x87\xC3\x87",
+	"\x03\x87\xC3\x87",
+	"\x03\x83\xCB\x83",
+	"\x03\x82\xCD\x82",
+	"\x03\x82\xCD\x82",
+	"\x03\x82\xCD\x82",
+	"\x03\x82\xCD\x82"
 };
 
-// [state][scanline]
-uint8_t *gfx_mothership[][7] = {
-	{ // right (0)
-		"\x03\x89\xC6\x84",
-		"\x03\x87\xCA\x82",
-		"\x03\x86\xCC\x81",
-		"\x0A\x85\xC2\x81\xC2\x81\xC2\x81\xC2\x81\xC2",
-		"\x02\x84\xD0",
-		"\x07\x86\xC3\x82\xC2\x82\xC3\x81",
-		"\x05\x87\xC1\x88\xC1\x82"
-	}, { // left (1)
-		"\x04\x01\x84\xC6\x89",
-		"\x04\x01\x82\xCA\x87",
-		"\x04\x01\x81\xCC\x86",
-		"\x0B\x01\xC2\x81\xC2\x81\xC2\x81\xC2\x81\xC2\x85",
-		"\x02\xD0\x84",
-		"\x08\x01\x81\xC3\x82\xC2\x82\xC3\x86",
-		"\x06\x01\x82\xC1\x88\xC1\x87"
-	}
+// [scanline]
+uint8_t *gfx_mothership[7] = {
+	"\x03\x87\xC6\x87",
+	"\x03\x85\xCA\x85",
+	"\x03\x84\xCC\x84",
+	"\x0B\x83\xC2\x81\xC2\x81\xC2\x81\xC2\x81\xC2\x83",
+	"\x03\x82\xD0\x82",
+	"\x07\x84\xC3\x82\xC2\x82\xC3\x84",
+	"\x05\x85\xC1\x88\xC1\x85"
 };
 
 uint8_t *gfx_mothership_explode[] = {
@@ -469,11 +448,10 @@ const uint8_t cfg_mothership_score_frames = 40;        // x >= 1
 const uint8_t cfg_missile_speed = 4;                   // x >= 4
 const uint8_t cfg_bullet_speed = 4;                    // x >= 1
 const uint8_t cfg_invader_speed = 2 << 1;              // x = 2 << 1 // WARNME: DO NOT CHANGE!
-const uint8_t cfg_mothership_wait_frames = 1;          // x >= 1
-const uint8_t cfg_mothership_step = 1 << 1;            // 1 << 1 =< x <= 4 << 1
+const uint8_t cfg_mothership_speed = 1 << 1;           // 1 << 1 <= x <= 2 << 1
 const uint16_t cfg_mothership_spawn_delay_min = 1500;  // x >= 0
 const uint16_t cfg_mothership_spawn_delay_max = 3500;  // x >= cfg_mothership_spawn_delay_min
-const uint8_t cfg_player_speed = 1 << 1;               // 1 << 1 <= x <= 4 << 1
+const uint8_t cfg_player_speed = 2 << 1;               // 1 << 1 <= x = 2 << 1
 const uint8_t cfg_bullet_min_dist_y = 24;              // x >= 0
 const uint8_t cfg_bullet_min_dist_x = 24;              // x >= 0
 const uint8_t cfg_missile_tail = 2;                    // should be computed as MAX_BULLETS x cfg_missile_speed - 10 (or 0 if negative)
@@ -691,19 +669,18 @@ void invader_fire_timer_reset() {
 		(sys_rand() % (lvl_invader_fire_delay_max[level] - lvl_invader_fire_delay_min[level] + 1));
 }
 
-void player_draw(object_state state) {
-	uint8_t **sprite = gfx_player[state];
-	gdp_draw_sprite(sprite, 7, player.x - gfx_dx_by_state[state], 221);
+void player_draw() {
+	gdp_draw_sprite(gfx_player, 7, player.x - (2 << 1), 221);
 }
 
 void player_move_right() {
 	player.x += cfg_player_speed;
-	player_draw(STATE_MOVE_RIGHT);
+	player_draw();
 }
 
 void player_move_left() {
 	player.x -= cfg_player_speed;
-	player_draw(STATE_MOVE_LEFT);
+	player_draw();
 }
 
 void player_score_update(uint16_t points) {
@@ -734,18 +711,18 @@ bool player_check_hit(uint16_t x, uint8_t y_top, uint8_t y_bottom) {
 		&& x + 3 >= player.x && x - 2 < player.x + (13 << 1);
 }
 
-void mothership_draw(object_state state) {
-	gdp_draw_sprite(gfx_mothership[state], 6, mothership.x - gfx_dx_by_state[state], 38);
+void mothership_draw() {
+	gdp_draw_sprite(gfx_mothership, 6, mothership.x - (2 << 1), 38);
 }
 
 void mothership_move_right() {
-	mothership.x += cfg_mothership_step;
-	mothership_draw(STATE_MOVE_RIGHT);
+	mothership.x += cfg_mothership_speed;
+	mothership_draw();
 }
 
 void mothership_move_left() {
-	mothership.x -= cfg_mothership_step;
-	mothership_draw(STATE_MOVE_LEFT);
+	mothership.x -= cfg_mothership_speed;
+	mothership_draw();
 }
 
 void mothership_clear() {
@@ -794,7 +771,7 @@ bool missile_check_hit(bullet *b) {
 		&& missile.explode_frame == 0; // missile is not exploding
 }
 
-void missile_collide_and_draw() {
+void missile_update() {
 	if (missile.y < 220) {
 		// clear
 		gdp_set_xy(missile.x, missile.y + cfg_missile_speed);
@@ -909,7 +886,7 @@ void bullet_explode_at(bullet *b, uint8_t y) {
 	bullet_explode_draw(b);
 }
 
-bool bullet_collide_and_draw(bullet *b) {
+bool bullet_update(bullet *b) {
 	bullet_clear_tail(b);
 	b->frame = (b->frame + 1) & 3;
 	if (b->y >= 230) {
@@ -926,7 +903,7 @@ bool bullet_collide_and_draw(bullet *b) {
 			game_over();
 			return false;
 		}
-		player_draw(STATE_MOVE_RIGHT);
+		player_draw();
 	} else {
 		// check if shield was hit
 		uint8_t y_top = b->y - cfg_bullet_speed;
@@ -934,9 +911,9 @@ bool bullet_collide_and_draw(bullet *b) {
 		if (y_bottom >= 197 && y_top <= 197 + 16) {
 			for (uint8_t i = 0; i < 4; i++) {
 				uint8_t y;
-				if ((y = shield_check_hit(&shields[i], b->x, y_top, y_bottom, /*from_bottom*/false))
-						|| (y = shield_check_hit(&shields[i], b->x - 2, y_top, y_bottom, /*from_bottom*/false))
-						|| (y = shield_check_hit(&shields[i], b->x + 2, y_top, y_bottom, /*from_bottom*/false))) {
+				if ((y = shield_check_hit(&shields[i], b->x, y_top, y_bottom, false))
+						|| (y = shield_check_hit(&shields[i], b->x - 2, y_top, y_bottom, false))
+						|| (y = shield_check_hit(&shields[i], b->x + 2, y_top, y_bottom, false))) {
 					bullet_clear_head(b);
 					bullet_explode_at(b, y - 6);
 					b->explode_frame = cfg_bullet_shield_hit_frames;
@@ -1192,9 +1169,9 @@ void render_lives() {
 		}
 	}
 	if (lives >= 2) {
-		gdp_draw_sprite(gfx_player[STATE_MOVE_LEFT], 7, 170 << 1, 243);
+		gdp_draw_sprite(gfx_player, 7, (170 - 2) << 1, 243);
 		if (lives >= 3) {
-			gdp_draw_sprite(gfx_player[STATE_MOVE_LEFT], 7, 187 << 1, 243);
+			gdp_draw_sprite(gfx_player, 7, (187 - 2) << 1, 243);
 		}
 	}
 	gdp_fill_rect(GDP_TOOL_ERASER, 153 << 1, 244, 5 << 1, 7);
@@ -1240,7 +1217,7 @@ user_action game_intro() {
 		return action;
 	}
 	render_text_at(162 << 1, 126, "*TOC^KOVALNA PREGLEDNICA*", 0);
-	gdp_draw_sprite(gfx_mothership[STATE_MOVE_LEFT], 6, 217 << 1, 135);
+	gdp_draw_sprite(gfx_mothership, 6, (217 - 2) << 1, 135);
 	gdp_draw_sprite(gfx_invaders[0][STATE_MOVE_LEFT][0], 7, 219 << 1, 150);
 	gdp_draw_sprite(gfx_invaders[1][STATE_MOVE_LEFT][1], 7, 219 << 1, 166);
 	gdp_draw_sprite(gfx_invaders[2][STATE_MOVE_LEFT][0], 7, 219 << 1, 182);
@@ -1340,7 +1317,6 @@ void game_init() {
 
 	// init mothership
 	mothership.x = 0;
-	mothership.wait_frame = 0;
 	mothership.score_frame = 0;
 
 	mothership_timer_reset();
@@ -1369,7 +1345,7 @@ void game_init() {
 	for (uint8_t i = 0; i < 55; i++) {
 		invader_draw(&invaders[i], STATE_MOVE_RIGHT);
 	}
-	player_draw(STATE_MOVE_RIGHT);
+	player_draw();
 	if (level < 9) {
 		for (uint8_t i = 0; i < 4; i++) {
 			shield_draw(&shields[i], level >= 5 ? 8 : 0);
@@ -1388,6 +1364,38 @@ void game_over() {
 	} while (timer_diff() < 500);
 }
 
+bool invader_update(invader *inv) {
+	if (inv->state == STATE_MOVE_RIGHT) {
+		if (inv->x < (347 - (grid.col_non_empty_last - inv->col) * 16) << 1) {
+			invader_move_right(inv);
+		} else {
+			if (invader_move_down_left(inv)) {
+				player_explode_animate();
+				game_over();
+				return false;
+			}
+			inv->state = STATE_MOVE_LEFT;
+		}
+	} else {
+		if (inv->x > (151 + (inv->col - grid.col_non_empty_first) * 16) << 1) {
+			invader_move_left(inv);
+		} else {
+			if (invader_move_down_right(inv)) {
+				player_explode_animate();
+				game_over();
+				return false;
+			}
+			inv->state = STATE_MOVE_RIGHT;
+		}
+	}
+	// update grid
+	grid_update(inv->col, inv->x, inv->x + (12 << 1) - 1);
+	if (inv->next == NULL) {
+		grid_reset();
+	}
+	return true;
+}
+
 game_state game() {
 	while (true) {
 		invader *inv = first_inv;
@@ -1397,33 +1405,14 @@ game_state game() {
 		}
 		do {
 			// update next invader
-			if (inv->state == STATE_MOVE_RIGHT) {
-				if (inv->x < (347 - (grid.col_non_empty_last - inv->col) * 16) << 1) {
-					invader_move_right(inv);
-				} else {
-					if (invader_move_down_left(inv)) {
-						player_explode_animate();
-						game_over();
-						return GAME_STATE_GAME_OVER;
-					}
-					inv->state = STATE_MOVE_LEFT;
-				}
-			} else {
-				if (inv->x > (151 + (inv->col - grid.col_non_empty_first) * 16) << 1) {
-					invader_move_left(inv);
-				} else {
-					if (invader_move_down_right(inv)) {
-						player_explode_animate();
-						game_over();
-						return GAME_STATE_GAME_OVER;
-					}
-					inv->state = STATE_MOVE_RIGHT;
-				}
+			if (!invader_update(inv)) {
+				return GAME_STATE_GAME_OVER;
 			}
-			// update grid
-			grid_update(inv->col, inv->x, inv->x + (12 << 1) - 1);
-			if (inv->next == NULL) {
-				grid_reset();
+			if (inv->next != NULL) {
+				inv = inv->next;
+				if (!invader_update(inv)) {
+					return GAME_STATE_GAME_OVER;
+				}
 			}
 			// get keyboard input
 			char key;
@@ -1480,7 +1469,7 @@ game_state game() {
 			bullet *b;
 			if (timer_diff_ex(invader_fire_timer, 0) >= invader_fire_delay) {
 				if (b = invader_fire()) {
-					if (!bullet_collide_and_draw(b)) {
+					if (!bullet_update(b)) {
 						return GAME_STATE_GAME_OVER;
 					}
 				}
@@ -1495,7 +1484,7 @@ game_state game() {
 				b->explode_frame--;
 			} else if (b->active) {
 				b->y += cfg_bullet_speed;
-				if (!bullet_collide_and_draw(b)) {
+				if (!bullet_update(b)) {
 					return GAME_STATE_GAME_OVER;
 				}
 			}
@@ -1522,7 +1511,7 @@ game_state game() {
 				missile.explode_frame--;
 			} else if (missile.x > 0) {
 				missile.y -= cfg_missile_speed;
-				missile_collide_and_draw();
+				missile_update();
 			}
 			// update player
 			switch (player.state) {
@@ -1535,9 +1524,6 @@ game_state game() {
 					if (player.x < (337 << 1)) {
 						player_move_right();
 					}
-					break;
-				default:
-					msleep(5); // compensate for player not moving
 					break;
 			}
 			// update mothership
@@ -1556,30 +1542,23 @@ game_state game() {
 						mothership.x = mothership.state == STATE_MOVE_LEFT
 							? 334 << 1
 							: 161 << 1;
-						mothership_draw(mothership.state);
+						mothership_draw();
 						mothership_timer_reset();
-					} else {
-						msleep(3); // compensate for mothership not rendering
 					}
 				} else {
-					if (mothership.wait_frame == cfg_mothership_wait_frames) {
-						mothership.wait_frame = 0;
-						bool able_to_move = false;
-						if (mothership.state == STATE_MOVE_LEFT) {
-							if ((mothership.x > 161 << 1) && (able_to_move = true)) { // single '=' is OK here :-)
-								mothership_move_left();
-							}
-						} else {
-							if ((mothership.x < 334 << 1) && (able_to_move = true)) {
-								mothership_move_right();
-							}
-						}
-						if (!able_to_move) {
-							mothership_clear();
-							mothership.x = 0;
+					bool able_to_move = false;
+					if (mothership.state == STATE_MOVE_LEFT) {
+						if ((mothership.x > 161 << 1) && (able_to_move = true)) { // single '=' is OK here :-)
+							mothership_move_left();
 						}
 					} else {
-						mothership.wait_frame++;
+						if ((mothership.x < 334 << 1) && (able_to_move = true)) {
+							mothership_move_right();
+						}
+					}
+					if (!able_to_move) {
+						mothership_clear();
+						mothership.x = 0;
 					}
 				}
 			}
@@ -1590,6 +1569,16 @@ game_state game() {
 int main() {
 	gdp_init();
 	avdc_init();
+
+/*for (int i = 0; i < 10; i++) {
+for (int j = 0; j < 10; j++) {
+	itoa(timer_ms(), buffer, 10);
+	avdc_write_str_at_cursor_pos(i, j * 8, buffer, NULL);
+}
+
+}
+return;*/
+
 
 	srand(timer());
 
