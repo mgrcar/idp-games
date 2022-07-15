@@ -65,6 +65,7 @@ typedef struct {
 
 typedef struct {
 	uint16_t x;
+	uint16_t x_right;
 	uint8_t bits[16][3]; // 16 rows, 3 bytes per row
 } shield;
 
@@ -74,6 +75,7 @@ typedef struct {
 	uint8_t explode_frame;
 	invader *hit_invader;
 	bool hit_mothership;
+	bool can_hit_shield;
 } missile;
 
 typedef struct {
@@ -85,6 +87,7 @@ typedef struct {
 	uint8_t y;
 	uint8_t col;
 	uint8_t explode_frame;
+	bool can_hit_shield;
 } bullet;
 
 // grid
@@ -155,7 +158,8 @@ bool bullet_check_dist(invader *inv);
 void shield_draw(shield *shield, uint8_t start_row);
 void shield_make_damage(shield *shield, uint16_t x, uint8_t y, uint8_t *bits);
 bool shield_check_hit_pixel(shield *shield, uint8_t x_local, int8_t y_local);
-uint8_t shield_check_hit(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bottom, bool from_bottom);
+uint8_t shield_check_hit_player(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bottom);
+uint8_t shield_check_hit_invader(shield *shield, uint16_t x, uint8_t y_top, uint8_t y_bottom);
 void shield_erase_bits(shield *shield, int8_t x, int8_t y, uint8_t bits);
 void shield_handle_invader_collision(invader *inv, object_state state);
 
