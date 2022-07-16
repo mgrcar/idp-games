@@ -438,17 +438,17 @@ uint8_t mothership_score_idx = 0;
 
 // config
 
-const uint8_t cfg_missile_explode_frames = 12;         // x >= 1
-const uint8_t cfg_bullet_explode_frames = 4;           // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
-const uint8_t cfg_invader_explode_frames = 12;         // x >= 1
-const uint8_t cfg_shield_hit_frames = 12;              // x >= 1
-const uint8_t cfg_bullet_shield_hit_frames = 4;        // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
-const uint8_t cfg_mothership_explode_frames = 24;      // x >= 1
-const uint8_t cfg_mothership_score_frames = 40;        // x >= 1
-const uint8_t cfg_missile_speed = 4;                   // x >= 4
-const uint8_t cfg_bullet_speed = 6;                    // x >= 1
+const uint8_t cfg_missile_explode_frames = 6;          // x >= 1
+const uint8_t cfg_bullet_explode_frames = 2;           // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
+const uint8_t cfg_invader_explode_frames = 6;          // x >= 1
+const uint8_t cfg_shield_hit_frames = 6;               // x >= 1
+const uint8_t cfg_bullet_shield_hit_frames = 2;        // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
+const uint8_t cfg_mothership_explode_frames = 12;      // x >= 1
+const uint8_t cfg_mothership_score_frames = 20;        // x >= 1
+const uint8_t cfg_missile_speed = 8;                   // x >= 4
+const uint8_t cfg_bullet_speed = 8;                    // x >= 6
 const uint8_t cfg_invader_speed = 2 << 1;              // x = 2 << 1 // WARNME: DO NOT CHANGE!
-const uint8_t cfg_mothership_speed = 1 << 1;           // 1 << 1 <= x <= 2 << 1
+const uint8_t cfg_mothership_speed = 3;                // 1 << 1 <= x <= 2 << 1
 const uint16_t cfg_mothership_spawn_delay_min = 1500;  // x >= 0
 const uint16_t cfg_mothership_spawn_delay_max = 3500;  // x >= cfg_mothership_spawn_delay_min
 const uint8_t cfg_player_speed = 2 << 1;               // 1 << 1 <= x = 2 << 1
@@ -872,7 +872,7 @@ void missile_update() {
 	}
 	if (mothership_check_hit(missile.x, missile.y - 3, missile.y + cfg_missile_speed)) {
 		mothership.destroyed = true;
-		missile.explode_frame = cfg_mothership_explode_frames + cfg_mothership_score_frames;
+		missile.explode_frame = cfg_mothership_explode_frames;
 		mothership_explode_draw();
 		return;
 	} else if (missile.can_hit_shield) {
@@ -915,29 +915,21 @@ void bullet_explode_clear(bullet *b) {
 	gdp_erase_sprite(gfx_bullet_explode, 7, b->x - (3 << 1), b->y + 2);
 }
 
-void bullet_clear_tail(bullet *b) {
+void bullet_clear(bullet *b) {
 	if (b->drawn) {
-		gdp_set_xy(b->x - 2, b->y - cfg_bullet_speed);
+		uint8_t y = b->y - cfg_bullet_speed;
+		gdp_set_xy(b->x - 2, y);
 		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
-		gdp_set_xy(b->x - 1, b->y - cfg_bullet_speed);
+		gdp_set_xy(b->x - 1, y);
 		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
-		gdp_set_xy(b->x, b->y - cfg_bullet_speed);
-		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/cfg_bullet_speed - 1, GDP_DELTA_SIGN_DY_POS);
-		gdp_set_xy(b->x + 1, b->y - cfg_bullet_speed);
-		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/cfg_bullet_speed - 1, GDP_DELTA_SIGN_DY_POS);
-		gdp_set_xy(b->x + 2, b->y - cfg_bullet_speed);
+		gdp_set_xy(b->x, y);
 		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
-		gdp_set_xy(b->x + 3, b->y - cfg_bullet_speed);
+		gdp_set_xy(b->x + 1, y);
 		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
-	}
-}
-
-void bullet_clear_head(bullet *b) {
-	if (b->drawn) {
-		gdp_set_xy(b->x, b->y);
-		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6 - cfg_bullet_speed, GDP_DELTA_SIGN_DY_POS);
-		gdp_set_xy(b->x + 1, b->y);
-		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6 - cfg_bullet_speed, GDP_DELTA_SIGN_DY_POS);
+		gdp_set_xy(b->x + 2, y);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
+		gdp_set_xy(b->x + 3, y);
+		gdp_line_delta(GDP_TOOL_ERASER, GDP_STYLE_NORMAL, /*dx*/0, /*dy*/6, GDP_DELTA_SIGN_DY_POS);
 	}
 }
 
@@ -947,14 +939,12 @@ void bullet_explode_at(bullet *b, uint8_t y) {
 }
 
 bool bullet_update(bullet *b) {
-	bullet_clear_tail(b);
+	bullet_clear(b);
 	b->frame = (b->frame + 1) & 3;
 	if (b->y >= 230) {
-		bullet_clear_head(b);
 		bullet_explode_at(b, 230);
 		b->explode_frame = cfg_bullet_explode_frames;
 	} else if (player_check_hit(b->x, b->y - cfg_bullet_speed, b->y + 6)) {
-		bullet_clear_head(b);
 		player_explode_animate();
 		b->active = false;
 		lives--;
@@ -973,7 +963,6 @@ bool bullet_update(bullet *b) {
 				for (uint8_t i = 0; i < 4; i++) {
 					uint8_t y;
 					if (y = shield_check_hit_invader(&shields[i], b->x, y_top, y_bottom)) {
-						bullet_clear_head(b);
 						bullet_explode_at(b, y - 6);
 						b->explode_frame = cfg_bullet_shield_hit_frames;
 						shield_make_damage(&shields[i], b->x, b->y + 5, bits_shield_damage_bullet);
@@ -986,9 +975,6 @@ bool bullet_update(bullet *b) {
 			shield *shield;
 			bool bullet_explode = sys_rand() % 10 < lvl_bullet_explode_chance[level];
 			bool missile_explode = sys_rand() % 10 < lvl_missile_explode_chance[level];
-			if (bullet_explode) {
-				bullet_clear_head(b);
-			}
 			if (missile_explode) {
 				// missile_clear
 				gdp_set_xy(missile.x, missile.y);
@@ -1601,6 +1587,7 @@ game_state game() {
 #endif
 			}
 		} while (inv = inv->next);
+		kbd_beep(false);
 	}
 }
 
@@ -1631,6 +1618,7 @@ int main() {
 		render_credits();
 		while (true) {
 			game_init(); // calls render_cls, render_lives
+			kbd_beep(false);
 			game_state state = game();
 			if (state == GAME_STATE_EXIT) {
 				break;
