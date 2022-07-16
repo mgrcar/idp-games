@@ -56,6 +56,7 @@ typedef struct {
 	uint16_t spawn_timer;
 	uint8_t score_frame;
 	uint16_t score_x;
+	bool destroyed;
 } mothership;
 
 typedef struct {
@@ -74,7 +75,6 @@ typedef struct {
 	uint8_t y;
 	uint8_t explode_frame;
 	invader *hit_invader;
-	bool hit_mothership;
 	bool can_hit_shield;
 } missile;
 
@@ -120,6 +120,7 @@ void player_move_left();
 void player_score_update(uint16_t points);
 void player_explode_animate();
 bool player_check_hit(uint16_t x, uint8_t y_top, uint8_t y_bottom);
+void player_fire();
 
 // mothership
 

@@ -867,7 +867,7 @@ void missile_update() {
 		}
 	}
 	if (mothership_check_hit(missile.x, missile.y - 3, missile.y + cfg_missile_speed)) {
-		missile.hit_mothership = true;
+		mothership.destroyed = true;
 		missile.explode_frame = cfg_mothership_explode_frames + cfg_mothership_score_frames;
 		mothership_explode_draw();
 		return;
@@ -1365,11 +1365,11 @@ void game_init() {
 	missile.x = 0; // not fired
 	missile.explode_frame = 0; // not exploding
 	missile.hit_invader = NULL;
-	missile.hit_mothership = false;
 
 	// init mothership
 	mothership.x = 0;
 	mothership.score_frame = 0;
+	mothership.destroyed = false;
 
 	mothership_timer_reset();
 
@@ -1513,11 +1513,11 @@ game_state game() {
 			// update player missile
 			if (missile.explode_frame > 0) {
 				if (missile.explode_frame == 1) {
-					if (missile.hit_mothership) {
+					if (mothership.destroyed) {
 						mothership_explode_clear();
 						mothership_score_draw();
 						player_score_update(mothership_score[mothership_score_idx]);
-						missile.hit_mothership = false;
+						mothership.destroyed = false;
 						mothership.score_x = mothership.x;
 						mothership.x = 0;
 						mothership.score_frame = cfg_mothership_score_frames;
@@ -1554,7 +1554,7 @@ game_state game() {
 				}
 				mothership.score_frame--;
 			}
-			if (!missile.hit_mothership) {
+			if (!mothership.destroyed) {
 				if (mothership.x == 0) {
 					if (timer_diff_ex(mothership.spawn_timer, 0) >= mothership.spawn_delay) {
 						mothership.state = sys_rand() % 2 == 0
