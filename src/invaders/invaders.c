@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 
 #include <stdlib.h>
 #include <string.h>
@@ -666,9 +666,11 @@ bullet *invader_fire() {
 				b->explode_frame = 0;
 				b->col = shooter_idx % 11;
 				b->can_hit_shield = false;
-				for (uint8_t i = 0; i < 4; i++) {
-					shield *shield = &shields[i];
-					b->can_hit_shield |= b->x + 3 >= shield->x && b->x - 2 < shield->x_right;
+				if (level < 9) {
+					for (uint8_t i = 0; i < 4; i++) {
+						shield *shield = &shields[i];
+						b->can_hit_shield |= b->x + 3 >= shield->x && b->x - 2 < shield->x_right;
+					}
 				}
 				return b;
 			}
@@ -757,9 +759,11 @@ void player_fire() {
 	missile.x = player.x + (6 << 1);
 	missile.y = 220 + cfg_missile_speed;
 	missile.can_hit_shield = false;
-	for (uint8_t i = 0; i < 4; i++) {
-		shield *shield = &shields[i];
-		missile.can_hit_shield |= missile.x + 1 >= shield->x && missile.x < shield->x_right;
+	if (level < 9) {
+		for (uint8_t i = 0; i < 4; i++) {
+			shield *shield = &shields[i];
+			missile.can_hit_shield |= missile.x + 1 >= shield->x && missile.x < shield->x_right;
+		}
 	}
 	mothership_score_idx++;
 	if (mothership_score_idx > 23) {
