@@ -1621,7 +1621,7 @@ int main() {
 		render_text_at(153 << 1, 12, "TOC^KE", 0);
 		render_text_at(230 << 1, 12, "STOPNJA", 0);
 		render_text_at(313 << 1, 12, "REKORD", 0);
-		render_text_at(290 << 1, 251, "Z^ETONI", 0);
+		render_text_at(289 << 1, 251, "Z^ETONI", 0);
 		render_score();
 		render_level();
 		render_hi_score();
