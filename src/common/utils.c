@@ -67,6 +67,20 @@ void kbd_beep(bool long_beep) {
 	KBD_CMD = long_beep ? KBD_CMD_BEEP_LONG : KBD_CMD_BEEP;
 }
 
+char kbd_get_key() {
+	char key = kbhit();
+	if (key == 27) {
+		if (!(key = kbhit())) {
+			key = 27;
+		} else if (key == 91) {
+			key = kbhit() | 128; // ANSI special key
+		} else {
+			key |= 128; // VT52 special key
+		}
+	}
+	return key;
+}
+
 // other
 
 bool sys_is_emu() {

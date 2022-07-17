@@ -35,6 +35,7 @@ __sfr __at 0xD8 KBD_CMD;    // W: command
 
 void kbd_wait_ready();
 void kbd_beep(bool long_beep);
+char kbd_get_key();
 
 // other
 

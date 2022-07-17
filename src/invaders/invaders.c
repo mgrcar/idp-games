@@ -1238,11 +1238,12 @@ user_action game_intro_keyboard_handler(uint16_t timeout_ms) {
 	uint16_t timeout = timeout_ms / 10;
 	do {
 		char key;
-		if (key = kbhit()) {
+		if (key = kbd_get_key()) {
 			switch (key) {
 				case 'x':
 				case 'X':
 				case 3:
+				case 27:
 					return ACTION_EXIT;
 				default:
 					return ACTION_CONTINUE;
@@ -1271,14 +1272,17 @@ user_action game_intro() {
 	}
 	while (true) {
 		char key;
-		if (key = kbhit()) {
+		if (key = kbd_get_key()) {
 			switch (key) {
 				case 'x':
 				case 'X':
 				case 3:
+				case 27:
 					return ACTION_EXIT;
 				case 'w':
 				case 'W':
+				case 65 | 128:
+				case 11:
 					if (level < 9) {
 						level++;
 						render_level();
@@ -1286,6 +1290,8 @@ user_action game_intro() {
 					break;
 				case 's':
 				case 'S':
+				case 66 | 128:
+				case 10:
 					if (level > 1) {
 						level--;
 						render_level();
@@ -1401,7 +1407,7 @@ void game_over() {
 	msleep(1000);
 	timer_reset(0);
 	do {
-		if (kbhit()) {
+		if (kbd_get_key()) {
 			break;
 		}
 	} while (timer_diff() < 500);
@@ -1431,10 +1437,12 @@ game_state game() {
 			}
 			// get keyboard input
 			char key;
-			if (key = kbhit()) {
+			if (key = kbd_get_key()) {
 				switch (key) {
 					case 'a':
 					case 'A':
+					case 68 | 128:
+					case 8:
 						// left / stop
 						player.state = player.state == STATE_MOVE_LEFT
 							? STATE_HOLD
@@ -1442,12 +1450,18 @@ game_state game() {
 						break;
 					case 'd':
 					case 'D':
+					case 67 | 128:
+					case 12:
 						// right / stop
 						player.state = player.state == STATE_MOVE_RIGHT
 							? STATE_HOLD
 							: STATE_MOVE_RIGHT;
 						break;
 					case ' ':
+					case 'w':
+					case 'W':
+					case 65 | 128:
+					case 11:
 						// fire
 						if (missile.x == 0) {
 							player_fire();
@@ -1469,6 +1483,7 @@ game_state game() {
 					case 'x':
 					case 'X':
 					case 3:
+					case 27:
 						return GAME_STATE_EXIT;
 					default:
 						// stop
