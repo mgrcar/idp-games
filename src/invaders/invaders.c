@@ -1073,9 +1073,9 @@ uint8_t shield_check_hit_invader(shield *shield, uint16_t x, uint8_t y_top, uint
 		// check pixels
 		for (uint8_t y = y_top; y <= y_bottom; y++) {
 			int8_t y_local = y - 197;
-			if (shield_check_hit_pixel(shield, (x - shield->x) >> 1, y_local)
-				|| shield_check_hit_pixel(shield, ((x - 2) - shield->x) >> 1, y_local)
-				|| shield_check_hit_pixel(shield, ((x + 2) - shield->x) >> 1, y_local)) {
+			if ((x + 1 >= shield->x && x < shield->x_right && shield_check_hit_pixel(shield, (x - shield->x) >> 1, y_local))
+				|| (x - 1 >= shield->x && x - 2 < shield->x_right && shield_check_hit_pixel(shield, ((x - 2) - shield->x) >> 1, y_local))
+				|| (x + 3 >= shield->x && x + 2 < shield->x_right && shield_check_hit_pixel(shield, ((x + 2) - shield->x) >> 1, y_local))) {
 				return y;
 			}
 		}
