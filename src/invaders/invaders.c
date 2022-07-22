@@ -1,5 +1,3 @@
-//#define DEBUG
-
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -10,6 +8,8 @@
 
 #define BUFFER_SIZE 256
 #define MAX_BULLETS 3
+
+//#define DEBUG
 
 uint8_t buffer[BUFFER_SIZE];
 
@@ -202,8 +202,7 @@ uint8_t *gfx_invaders[][2][2][8] = {
 	}
 };
 
-// [scanline]
-uint8_t *gfx_player[8] = {
+uint8_t *gfx_player[] = {
 	"\x03\x88\xC1\x88",
 	"\x03\x87\xC3\x87",
 	"\x03\x87\xC3\x87",
@@ -214,8 +213,7 @@ uint8_t *gfx_player[8] = {
 	"\x03\x82\xCD\x82"
 };
 
-// [scanline]
-uint8_t *gfx_mothership[7] = {
+uint8_t *gfx_mothership[] = {
 	"\x03\x87\xC6\x87",
 	"\x03\x85\xCA\x85",
 	"\x03\x84\xCC\x84",
@@ -438,24 +436,24 @@ uint8_t mothership_score_idx = 0;
 
 // config
 
-const uint8_t cfg_missile_explode_frames = 6;          // x >= 1
-const uint8_t cfg_bullet_explode_frames = 2;           // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
-const uint8_t cfg_invader_explode_frames = 6;          // x >= 1
-const uint8_t cfg_shield_hit_frames = 6;               // x >= 1
-const uint8_t cfg_bullet_shield_hit_frames = 2;        // x >= 1 // WARNME: this will be multiplied by MAX_BULLETS
-const uint8_t cfg_mothership_explode_frames = 12;      // x >= 1
-const uint8_t cfg_mothership_score_frames = 20;        // x >= 1
-const uint8_t cfg_missile_speed = 8;                   // x >= 4
-const uint8_t cfg_bullet_speed = 8;                    // x >= 6
-const uint8_t cfg_invader_speed = 2 << 1;              // x = 2 << 1 // WARNME: DO NOT CHANGE!
-const uint8_t cfg_mothership_speed = 3;                // 1 << 1 <= x <= 2 << 1
-const uint16_t cfg_mothership_spawn_delay_min = 1500;  // x >= 0
-const uint16_t cfg_mothership_spawn_delay_max = 3500;  // x >= cfg_mothership_spawn_delay_min
-const uint8_t cfg_player_speed = 2 << 1;               // 1 << 1 <= x = 2 << 1
-const uint8_t cfg_bullet_min_dist_y = 24;              // x >= 0
-const uint8_t cfg_bullet_min_dist_x = 24;              // x >= 0
-const uint8_t cfg_missile_tail = 2;                    // should be computed as MAX_BULLETS x cfg_missile_speed - 10 (or 0 if negative)
-const uint8_t cfg_frame_duration_ms = 40;              // x >= 0 // NOTE: should be around 50
+const uint8_t cfg_missile_explode_frames = 6;         // x >= 1
+const uint8_t cfg_bullet_explode_frames = 2;          // x >= 1 // NOTE: this will be multiplied by MAX_BULLETS
+const uint8_t cfg_invader_explode_frames = 6;         // x >= 1
+const uint8_t cfg_shield_hit_frames = 6;              // x >= 1
+const uint8_t cfg_bullet_shield_hit_frames = 2;       // x >= 1 // NOTE: this will be multiplied by MAX_BULLETS
+const uint8_t cfg_mothership_explode_frames = 12;     // x >= 1
+const uint8_t cfg_mothership_score_frames = 20;       // x >= 1
+const uint8_t cfg_missile_speed = 8;                  // x >= 4
+const uint8_t cfg_bullet_speed = 8;                   // x >= 6
+const uint8_t cfg_invader_speed = 2 << 1;             // x = 2 << 1 // WARNME: DO NOT CHANGE!
+const uint8_t cfg_mothership_speed = 3;               // 1 << 1 <= x <= 2 << 1 // WARNME: not a multiple of 2!
+const uint16_t cfg_mothership_spawn_delay_min = 1500; // x >= 0
+const uint16_t cfg_mothership_spawn_delay_max = 3500; // x >= cfg_mothership_spawn_delay_min
+const uint8_t cfg_player_speed = 2 << 1;              // 1 << 1 <= x = 2 << 1
+const uint8_t cfg_bullet_min_dist_y = 24;             // x >= 0
+const uint8_t cfg_bullet_min_dist_x = 24;             // x >= 0
+const uint8_t cfg_missile_tail = 2;                   // computed as MAX_BULLETS x cfg_missile_speed - 10 (or 0 if negative)
+const uint8_t cfg_frame_duration_ms = 40;             // x >= 0 // NOTE: should be around 50
 
 // level design
 
@@ -468,9 +466,6 @@ uint8_t lvl_invader_fire_direct_chance[] = { 0, 2, 3, 3, 4, 4, 5, 5, 6 };
 uint8_t lvl_invader_fire_close_chance[] =  { 0, 2, 2, 2, 2, 2, 2, 2, 2 };
 
 #ifdef DEBUG
-
-uint32_t t = 0;
-uint16_t c = 0;
 
 uint8_t *debug_to_binary_str(uint8_t val) {
 	for (uint8_t i = 0; i < 8; i++) {
@@ -488,11 +483,6 @@ void debug_print_bits(shield *shield) {
 			avdc_write_str_at_cursor_pos(y, i * 8 + i, str, NULL);
 		}
 	}
-}
-
-void debug_print_stats() {
-	itoa(t / c, buffer, 10);
-	avdc_write_str_at_cursor_pos(0, 0, buffer, NULL);
 }
 
 #endif
